@@ -1,6 +1,10 @@
-use warp::Filter;
+use warp::{log, serve, Filter};
+
+use crate::api;
 
 pub async fn start_server() {
-    let hello = warp::path!("hello" / String).map(|x| x);
-    warp::serve(hello).run(([127, 0, 0, 1], 3030)).await;
+    let api = api::filters::m3us();
+    let routes = api.with(log("m3us"));
+
+    serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
