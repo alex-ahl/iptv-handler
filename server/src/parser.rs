@@ -12,9 +12,11 @@ pub async fn parser() {
     };
 
     println!("{:?}", res);
+    println!("{:?}", res);
 }
 
 async fn get_m3u(url: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let resp = reqwest::get(url).await?.text().await?;
-    Ok(resp)
+    let res = surf::get(url).await?.body_string().await?;
+    println!("{:?}", res);
+    Ok("".to_string())
 }

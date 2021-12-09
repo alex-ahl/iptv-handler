@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  gui:
+    build:
+      context: "./gui"
+      dockerfile: Dockerfile
+    networks:
+      - iptvproxy
+    volumes:
+      - "./gui/src:/app/src"
+    ports:
+      - "3000:3000"
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.develop
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server:/usr/src/app
+    environment:
+      M3U: "https://iptv-org.github.io/guiptv/countries/se.m3u"
+    command: bash -c "./wait-for-it.sh db:3306 -q -- cargo watch -x run"
+    depends_on: 
+      - db
+    networks:
+      - iptvproxy
+
+  db:
+    image: "mariadb:latest"
+    restart: always
+    ports:
+      - 3306:3306
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "db"
+      MYSQL_DATABASE: "iptvproxy"
+      MYSQL_USER: "db"
+      MYSQL_PASSWORD: "db"
+    networks:
+      - iptvproxy
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    networks:
+      - iptvproxy
+
+volumes:
+  mariadb-data: {}
+networks:
+  iptvproxy:
+    name: iptvproxy

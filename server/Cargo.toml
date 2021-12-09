@@ -1,7 +1,7 @@
 [package]
 name = "iptv-proxy"
 version = "0.1.0"
-edition = "2021"
+edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -9,6 +9,7 @@ edition = "2021"
 warp = "0.3.2"
 serde = { version = "1.0.130", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
-reqwest = { version = "0.11", features = ["json"] }
+sqlx = { version = "0.2", default-features = false, features = [ "runtime-tokio", "macros", "mysql" ] }
+surf = "2.3.2"
 dotenv = "0.15.0"
 dotenv_codegen = "0.15.0"
