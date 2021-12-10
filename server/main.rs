@@ -10,6 +10,5 @@ async fn main() {
     server::start_server().await;
 
     let pool = sqlx::MySqlPool::new("mysql://db:db@127.0.0.1/iptvproxy").await;
-
-    println!("{:?}", pool);
+    println!("{:?}", pool)
 }
