@@ -8,7 +8,7 @@ services:
     networks:
       - iptvproxy
     volumes:
-      - "./gui/src:/app/src"
+      - gui_sync:/app/src:nocopy
     ports:
       - "3000:3000"
 
@@ -19,9 +19,9 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - server-sync:/usr/src/app:nocopy # docker-sync to speed up slow compiles
+      - server_sync:/usr/src/app:nocopy # docker-sync to speed up slow compiles
     environment:
-      M3U: "https://iptv-org.github.io/guiptv/countries/se.m3u"
+      M3U: "https://iptv-org.github.io/iptv/countries/se.m3u"
     command: bash -c "/wait-for-it.sh db:3306 -q -- cargo watch -x run"
     depends_on:
       - db
@@ -34,7 +34,7 @@ services:
     ports:
       - 3306:3306
     volumes:
-      - mariadb-data:/var/lib/mysql
+      - db_sync:/var/lib/mysql:nocopy
     environment:
       MYSQL_ROOT_PASSWORD: "db"
       MYSQL_DATABASE: "iptvproxy"
@@ -52,8 +52,12 @@ services:
       - iptvproxy
 
 volumes:
-  mariadb-data: {}
-  app-code-sync:
+  #mariadb-data: {}
+  server_sync:
+    external: true
+  db_sync:
+    external: true
+  gui_sync:
     external: true
 networks:
   iptvproxy:
