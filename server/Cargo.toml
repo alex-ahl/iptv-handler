@@ -9,7 +9,5 @@ edition = "2018"
 warp = "0.3.2"
 serde = { version = "1.0.130", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
-sqlx = { version = "0.2", default-features = false, features = [ "runtime-tokio", "macros", "mysql" ] }
+sqlx = { version = "0.5.6", default-features = false, features = [ "macros", "mysql", "migrate", "runtime-tokio-native-tls" ] }
 surf = "2.3.2"
-dotenv = "0.15.0"
-dotenv_codegen = "0.15.0"

@@ -1,5 +1,4 @@
 version: "3.8"
-
 services:
   gui:
     build:
@@ -11,7 +10,6 @@ services:
       - gui_sync:/app/src:nocopy
     ports:
       - "3000:3000"
-
   server:
     build:
       context: ./server
@@ -21,13 +19,13 @@ services:
     volumes:
       - server_sync:/usr/src/app:nocopy # docker-sync to speed up slow compiles
     environment:
+      CONNECTION_STRING: "mysql://db:db@db/iptvproxy"
       M3U: "https://iptv-org.github.io/iptv/countries/se.m3u"
     command: bash -c "/wait-for-it.sh db:3306 -q -- cargo watch -x run"
     depends_on:
       - db
     networks:
       - iptvproxy
-
   db:
     image: "mariadb:latest"
     restart: always
@@ -42,17 +40,7 @@ services:
       MYSQL_PASSWORD: "db"
     networks:
       - iptvproxy
-
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8080:8080
-    networks:
-      - iptvproxy
-
 volumes:
-  #mariadb-data: {}
   server_sync:
     external: true
   db_sync:
