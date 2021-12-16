@@ -11,3 +11,4 @@ serde = { version = "1.0.130", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
 sqlx = { version = "0.5.6", default-features = false, features = [ "macros", "mysql", "migrate", "runtime-tokio-native-tls" ] }
 surf = "2.3.2"
+url = "2.2.2"

@@ -2,6 +2,7 @@ mod api;
 mod db;
 mod parser;
 mod server;
+pub mod provider;
 
 #[tokio::main]
 async fn main() {
