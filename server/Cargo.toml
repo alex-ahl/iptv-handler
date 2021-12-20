@@ -1,14 +1,2 @@
-[package]
-name = "iptv-proxy"
-version = "0.1.0"
-edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-warp = "0.3.2"
-serde = { version = "1.0.130", features = ["derive"] }
-tokio = { version = "1", features = ["full"] }
-sqlx = { version = "0.5.6", default-features = false, features = [ "macros", "mysql", "migrate", "runtime-tokio-native-tls" ] }
-surf = "2.3.2"
-url = "2.2.2"
+[workspace]
+members = ["db", "server", "api", "iptv"]
