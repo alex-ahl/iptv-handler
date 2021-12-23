@@ -1,0 +1,11 @@
+[package]
+name = "db"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sqlx = { version = "0.5.6", default-features = false, features = [ "macros", "mysql", "migrate", "runtime-tokio-native-tls" ] }
+async-trait = "0.1.52"
+serde = { version = "1.0.132", features = ["derive"] }

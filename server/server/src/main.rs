@@ -1,9 +1,13 @@
 use api::filters;
+use db::CRUD;
 use warp::{log, serve, Filter};
 
 #[tokio::main]
 async fn main() {
-    db::connect().await;
+    let pool = db::connect().await;
+    db::handle_migrations(&pool).await;
+
+    let db = db::init_db(pool).await;
     iptv::parser().await;
     start_server().await
 }
