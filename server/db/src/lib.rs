@@ -1,5 +1,4 @@
 pub mod models;
-
 use models::Provider;
 use sqlx::{migrate, Error, MySql, MySqlPool, Pool};
 use std::fmt::Debug;
