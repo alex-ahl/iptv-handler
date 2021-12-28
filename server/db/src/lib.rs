@@ -22,8 +22,10 @@ pub async fn handle_migrations(pool: &ConnectionPool) {
 }
 
 #[async_trait::async_trait]
-pub trait CRUD<T>: Send + Sync + Debug {
-    async fn get(&self, id: u64) -> Result<T, Error>;
+pub trait CRUD<TReturn, TInsert>: Send + Sync + Debug {
+    async fn get(&self, id: u64) -> Result<TReturn, Error>;
+    async fn insert(&self, model: TInsert) -> Result<u64, Error>;
+    async fn delete(&self, id: u64) -> Result<u64, Error>;
 }
 
 pub struct DB {
