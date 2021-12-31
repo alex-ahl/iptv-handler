@@ -1,30 +1,13 @@
-use std::env;
+use surf::Url;
 
-pub async fn parser() {
-    let m3u = match env::var("M3U") {
-        Ok(val) => val,
-        Err(e) => e.to_string(),
-    };
-
-    let _res = match get_m3u(&m3u).await {
+pub async fn parser(url: Url) {
+    let _res = match get_m3u(&url).await {
         Ok(res) => res,
         Err(e) => e.to_string(),
     };
 }
 
-async fn get_m3u(url: &str) -> Result<String, Box<dyn std::error::Error>> {
+async fn get_m3u(url: &Url) -> Result<String, Box<dyn std::error::Error>> {
     let res = surf::get(url).await?.body_string().await?;
     Ok(res)
-}
-
-pub async fn verbs() {
-    let m3u = match env::var("M3U") {
-        Ok(val) => val,
-        Err(e) => e.to_string(),
-    };
-
-    let _res = match get_m3u(&m3u).await {
-        Ok(res) => res,
-        Err(e) => e.to_string(),
-    };
 }

@@ -1,9 +1,12 @@
+#[macro_use]
+extern crate serde_json;
+
 pub mod filters {
     use warp::{self, body, path, post, Filter, Rejection, Reply};
 
     use super::{handlers, models::M3u};
 
-    pub fn m3us() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+    pub async fn m3us() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
         create()
     }
 
@@ -19,11 +22,23 @@ pub mod filters {
     }
 }
 
-mod handlers {
-    use std::convert::Infallible;
+pub mod handlers {
+    use db::DB;
+    use rest_client::RestClient;
+    use std::{convert::Infallible, sync::Arc};
     use warp::{http::StatusCode, Reply};
 
     use super::models::M3u;
+
+    pub async fn root_handler(
+        db: Arc<DB>,
+        client: Arc<RestClient>,
+    ) -> Result<impl warp::Reply, warp::Rejection> {
+        let _db = db;
+        let _client = client;
+
+        Ok(warp::reply::json(json!({ "temp": 1 }).as_object().unwrap()))
+    }
 
     pub async fn create_m3u_link(create: M3u) -> Result<impl Reply, Infallible> {
         println!("{:?}", create);
