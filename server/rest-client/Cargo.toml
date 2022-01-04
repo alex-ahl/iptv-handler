@@ -7,3 +7,4 @@ edition = "2018"
 
 [dependencies]
 surf = "2.3.2"
+serde = { version = "1.0.130", features = ["derive"] }

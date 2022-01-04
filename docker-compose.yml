@@ -1,31 +1,5 @@
-version: "3.8"
+version: '2.4'
 services:
-  gui:
-    build:
-      context: "./gui"
-      dockerfile: Dockerfile
-    networks:
-      - iptvproxy
-    volumes:
-      - gui_sync:/app/src:nocopy
-    ports:
-      - "3000:3000"
-  server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile.develop
-    ports:
-      - "3001:3001"
-    volumes:
-      - server_sync:/usr/src/app:nocopy # docker-sync to speed up slow compiles
-    env_file: ./server/db/.env
-    environment:
-      M3U: "https://iptv-org.github.io/iptv/countries/se.m3u"
-    command: bash -c "/wait-for-it.sh db:3306 -q -- cargo watch -x run"
-    depends_on:
-      - db
-    networks:
-      - iptvproxy
   db:
     image: "mariadb:latest"
     restart: always
@@ -40,6 +14,47 @@ services:
       MYSQL_PASSWORD: "db"
     networks:
       - iptvproxy
+
+  migration:
+    build:
+      context: ./db
+    command: bash -c "./wait-for-it.sh db:3306 -- sqlx database create && sqlx migrate run"
+    depends_on:
+      - db
+    networks:
+      - iptvproxy
+    restart: "no"
+    env_file: ./server/db/.env
+    volumes:
+      - ./server/db/migrations:/init/migrations
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.develop
+    command: bash -c "( cd db ; touch ./src/lib.rs && cargo sqlx prepare -- --lib ) && cargo watch -x run"
+    ports:
+      - "3001:3001"
+    volumes:
+      - server_sync:/usr/src/app:nocopy # docker-sync to speed up slow compiles
+    env_file: ./server/db/.env
+    environment:
+      M3U: "https://iptv-org.github.io/iptv/countries/se.m3u"
+      SQLX_OFFLINE: "true"
+    depends_on:
+      - db
+    networks:
+      - iptvproxy
+
+  gui:
+    build:
+      context: "./gui"
+      dockerfile: Dockerfile
+    networks:
+      - iptvproxy
+    volumes:
+      - gui_sync:/app/src:nocopy
+    ports:
+      - "3000:3000"
 volumes:
   server_sync:
     external: true

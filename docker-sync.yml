@@ -14,5 +14,5 @@ syncs:
     ]
     sync_strategy: 'native_osx'
   db_sync:
-    src: './db'
+    src: '~/docker-volumes/db'
     sync_strategy: 'native_osx'

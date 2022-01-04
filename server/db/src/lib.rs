@@ -28,7 +28,6 @@ pub trait CRUD<TReturn, TInsert>: Send + Sync + Debug {
     async fn delete(&self, id: u64) -> Result<u64, Error>;
 }
 
-#[derive(Clone)]
 pub struct DB {
     pub provider: Arc<Provider>,
 }

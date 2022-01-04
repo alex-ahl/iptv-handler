@@ -1,0 +1,8 @@
+FROM rust:1.57-slim-buster
+
+WORKDIR /init
+
+RUN cargo install sqlx-cli --no-default-features --features rustls,mysql
+
+COPY ./scripts/wait-for-it.sh .
+RUN chmod +x ./wait-for-it.sh
