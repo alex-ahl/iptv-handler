@@ -16,7 +16,10 @@ async fn main() {
     let client = RestClient::new();
 
     let url = db.provider.get(1).await.expect("provider entity").source;
-    let url = Url::parse(&"https://jsonplaceholder.typicode.com/todos/1").expect("parsed url");
+    let temp = db.attribute.get(1).await.expect("attribute entity");
+    println!("{:?}", temp);
+
+    let url = Url::parse(&url).expect("parsed url");
 
     iptv::m3u::parser::parse_m3u(url).await;
     start_server(Arc::new(db), Arc::new(client)).await

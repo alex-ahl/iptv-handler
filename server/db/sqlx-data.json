@@ -1,27 +1,7 @@
 {
   "db": "MySQL",
-  "23b6659ca3c46a570f0fb1c55516a4db1020b6ff5f648c48301f58bd13dd72c4": {
-    "query": "insert into Provider (name, source, groups, channels) values (?, ?, ?, ?)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 4
-      },
-      "nullable": []
-    }
-  },
-  "8556c9a40928a483b883e95d32040e220371fa021aeef8be0ca7dd6606e9bbbe": {
-    "query": "delete from Provider where id = ?",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": []
-    }
-  },
-  "b44f0b833e9fcd3ff89ffd8dbb52ccc0ab2b3a9cde87ebff36fa25e79ac3902c": {
-    "query": "select * from Provider where id = ?",
+  "5d1a5e508eb3635ec6e0ddfc60af242f768ee7a00ca103f7da5af825af67a79a": {
+    "query": "select * from provider where id = ?",
     "describe": {
       "columns": [
         {
@@ -95,6 +75,110 @@
         false,
         false
       ]
+    }
+  },
+  "728619563c94c2a452ae40bd9fde08cda7ecb309ba15585971e7c6352b00d28a": {
+    "query": "insert into attribute (`key`, `value`, provider_id) values (?, ?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 3
+      },
+      "nullable": []
+    }
+  },
+  "7b2652b1bdc281b0fc6e052724a81d7b22bc6d8fca059eacc2f717dac384fd9f": {
+    "query": "insert into provider (name, source, groups, channels) values (?, ?, ?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 4
+      },
+      "nullable": []
+    }
+  },
+  "91fedeb7309460e7918eb6faaf1afc1bbdcbe66ea50dca45c27989aec8b45a2f": {
+    "query": "delete from provider where id = ?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
+  "cf4e9bc4882af7b10a3048c57d75713e39390b0147521dbd46246e441b676abd": {
+    "query": "select * from attribute where id = ?",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": {
+            "type": "LongLong",
+            "flags": {
+              "bits": 547
+            },
+            "char_set": 63,
+            "max_size": 20
+          }
+        },
+        {
+          "ordinal": 1,
+          "name": "key",
+          "type_info": {
+            "type": "Blob",
+            "flags": {
+              "bits": 4113
+            },
+            "char_set": 224,
+            "max_size": 262140
+          }
+        },
+        {
+          "ordinal": 2,
+          "name": "value",
+          "type_info": {
+            "type": "Blob",
+            "flags": {
+              "bits": 4113
+            },
+            "char_set": 224,
+            "max_size": 262140
+          }
+        },
+        {
+          "ordinal": 3,
+          "name": "provider_id",
+          "type_info": {
+            "type": "LongLong",
+            "flags": {
+              "bits": 40
+            },
+            "char_set": 63,
+            "max_size": 20
+          }
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true
+      ]
+    }
+  },
+  "e5cb9c91ce4c3a1427b2b470492f2db160cd6f6240bf040f6d4bf2a78e1fd1e4": {
+    "query": "delete from attribute where id = ?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
     }
   }
 }

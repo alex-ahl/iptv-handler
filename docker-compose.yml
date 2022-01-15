@@ -18,7 +18,7 @@ services:
   migration:
     build:
       context: ./db
-    command: bash -c "./wait-for-it.sh db:3306 -- sqlx database create && sqlx migrate run"
+    command: bash -c "./wait-for-it.sh db:3306 -- sqlx database drop -y && sqlx database create && sqlx migrate run"
     depends_on:
       - db
     networks:
@@ -39,7 +39,6 @@ services:
     env_file: ./server/db/.env
     environment:
       M3U: "https://iptv-org.github.io/iptv/countries/se.m3u"
-      SQLX_OFFLINE: "true"
     depends_on:
       - db
     networks:

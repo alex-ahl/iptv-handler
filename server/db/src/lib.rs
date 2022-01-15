@@ -1,5 +1,5 @@
 pub mod models;
-use models::Provider;
+use models::{Attribute, Provider};
 use sqlx::{migrate, Error, MySql, MySqlPool, Pool};
 use std::fmt::Debug;
 use std::{env, sync::Arc};
@@ -30,10 +30,12 @@ pub trait CRUD<TReturn, TInsert>: Send + Sync + Debug {
 
 pub struct DB {
     pub provider: Arc<Provider>,
+    pub attribute: Arc<Attribute>,
 }
 
 pub async fn init_db(pool: ConnectionPool) -> DB {
     DB {
         provider: Arc::new(Provider::new(pool.clone())),
+        attribute: Arc::new(Attribute::new(pool.clone())),
     }
 }

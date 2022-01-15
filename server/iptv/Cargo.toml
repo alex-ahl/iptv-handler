@@ -8,4 +8,5 @@ edition = "2018"
 [dependencies]
 url = "2.2.2"
 m3u = "1.0.0"
+regex = "1.5.4"
 rest-client = { path = "../rest-client" }

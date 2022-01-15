@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::Error;
+use sqlx::{Error, FromRow};
 
 use crate::{ConnectionPool, CRUD};
 
@@ -11,7 +11,8 @@ pub struct ProviderRequest {
     channels: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+
 pub struct ProviderModel {
     id: u64,
     name: String,
@@ -34,7 +35,7 @@ impl Provider {
 #[async_trait::async_trait]
 impl CRUD<ProviderModel, ProviderRequest> for Provider {
     async fn get(&self, id: u64) -> Result<ProviderModel, Error> {
-        let res = sqlx::query_as!(ProviderModel, "select * from Provider where id = ?", id)
+        let res = sqlx::query_as!(ProviderModel, "select * from provider where id = ?", id)
             .fetch_one(&self.db)
             .await;
 
@@ -44,7 +45,7 @@ impl CRUD<ProviderModel, ProviderRequest> for Provider {
     async fn insert(&self, provider: ProviderRequest) -> Result<u64, Error> {
         let res = sqlx::query_as!(
             ProviderModel,
-            r#"insert into Provider (name, source, groups, channels) values (?, ?, ?, ?)"#,
+            r#"insert into provider (name, source, groups, channels) values (?, ?, ?, ?)"#,
             provider.name,
             provider.source,
             provider.groups,
@@ -58,7 +59,7 @@ impl CRUD<ProviderModel, ProviderRequest> for Provider {
     }
 
     async fn delete(&self, id: u64) -> Result<u64, Error> {
-        let res = sqlx::query_as!(u64, r#"delete from Provider where id = ?"#, id)
+        let res = sqlx::query_as!(u64, r#"delete from provider where id = ?"#, id)
             .execute(&self.db)
             .await?
             .rows_affected();

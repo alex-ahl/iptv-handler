@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 use std::time::Duration;
 
-use serde::{Deserialize, Serialize};
+// use serde::{Deserialize, Serialize};
 use surf::{Client, Config, Url};
 
 #[derive(Clone)]
@@ -19,16 +19,22 @@ impl RestClient {
         Self { client }
     }
 
-    pub async fn get_json(&self, url: &Url) -> String {
-        let Res { res } = self
+    pub async fn get_string(&self, url: &Url) -> String {
+        let res = self
             .client
             .get(&url)
-            .recv_json()
+            .recv_string()
             .await
-            .expect("parsed JSON");
+            .expect("parsing of string");
 
         res
     }
+
+    // pub async fn get(&self, url: &Url) -> String {
+    //     let res = self.client.get(&url).await.expect("parsing of string");
+
+    //     res
+    // }
 
     pub async fn post(&self, url: &Url, json: &str) -> Result<(), surf::Error> {
         self.client.post(&url).body_json(&json)?.await?;
@@ -37,7 +43,7 @@ impl RestClient {
     }
 }
 
-#[derive(Deserialize, Serialize)]
-struct Res {
-    res: String,
-}
+// #[derive(Deserialize, Serialize)]
+// struct Res {
+//     res: String,
+// }
