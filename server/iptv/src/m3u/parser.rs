@@ -4,17 +4,35 @@ use std::{
     iter::Skip,
 };
 
+use log::warn;
 use regex::Regex;
 use url::Url;
 
-use super::fetcher::get_m3u;
+use super::{
+    fetcher::get_m3u,
+    models::{ExtInf, M3U},
+};
 
-pub async fn parse_m3u(url: Url) {
+pub async fn parse_m3u(url: Url) -> M3U {
     let res = get_m3u(&url).await.expect("getting of successful result");
 
     let m3u = BufReader::new(res.as_bytes()).lines();
 
-    let mut lines = skip_ext_m3u_line(m3u);
+    let lines = skip_ext_m3u_line(m3u);
+
+    let parsed_extinf_lines = parse_extinf_lines(lines).to_vec();
+
+    M3U {
+        extinfs: parsed_extinf_lines,
+    }
+}
+
+fn skip_ext_m3u_line(lines: Lines<BufReader<&[u8]>>) -> Skip<Lines<BufReader<&[u8]>>> {
+    lines.skip(1)
+}
+
+fn parse_extinf_lines(mut lines: Skip<Lines<BufReader<&[u8]>>>) -> Box<Vec<ExtInf>> {
+    let mut parsed_extinf_lines: Vec<ExtInf> = vec![];
     let valid_extinf_line = Regex::new(r#"^(#\S+(?:\s+[^\s="]+=".*")+),(.*)\s*(.*)"#).unwrap();
 
     while let (Some(metadata), Some(url)) = (lines.next(), lines.next()) {
@@ -22,16 +40,21 @@ pub async fn parse_m3u(url: Url) {
         let url = Url::parse(&url.unwrap());
 
         if valid_extinf_line.is_match(&metadata) {
-            let _attributes = parse_attributes(&metadata);
-            let _url = url;
+            parsed_extinf_lines.push(ExtInf {
+                name: parse_name(&metadata),
+                attributes: parse_attributes(&metadata),
+                url: url.unwrap(),
+            })
         } else {
-            println!("{:?}", format!("{}{}", "nope: ", metadata));
+            warn!("Could not parse line: {}", metadata)
         }
     }
+
+    Box::new(parsed_extinf_lines)
 }
 
-fn skip_ext_m3u_line(lines: Lines<BufReader<&[u8]>>) -> Skip<Lines<BufReader<&[u8]>>> {
-    lines.skip(1)
+fn parse_name(extinf_line: &str) -> String {
+    extinf_line.split("\",").last().unwrap().to_string()
 }
 
 fn parse_attributes(extinf_line: &str) -> HashMap<String, String> {
