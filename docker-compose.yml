@@ -39,6 +39,7 @@ services:
     env_file: ./server/db/.env
     environment:
       M3U: "https://iptv-org.github.io/iptv/countries/se.m3u"
+      RUST_LOG: "info"
     depends_on:
       - db
     networks:

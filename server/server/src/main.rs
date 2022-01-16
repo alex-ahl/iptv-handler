@@ -1,3 +1,5 @@
+mod logger;
+
 use std::{convert::Infallible, sync::Arc};
 
 use api::handlers::root_handler;
@@ -6,8 +8,12 @@ use rest_client::RestClient;
 use url::Url;
 use warp::{serve, Filter};
 
+use crate::logger::init_logger;
+
 #[tokio::main]
 async fn main() {
+    init_logger();
+
     let pool = db::connect().await;
     db::handle_migrations(&pool).await;
 
@@ -16,12 +22,11 @@ async fn main() {
     let client = RestClient::new();
 
     let url = db.provider.get(1).await.expect("provider entity").source;
-    let temp = db.attribute.get(1).await.expect("attribute entity");
-    println!("{:?}", temp);
+    let _temp = db.attribute.get(1).await.expect("attribute entity");
 
     let url = Url::parse(&url).expect("parsed url");
 
-    iptv::m3u::parser::parse_m3u(url).await;
+    let _res = iptv::m3u::parser::parse_m3u(url).await;
     start_server(Arc::new(db), Arc::new(client)).await
 }
 
