@@ -30,20 +30,9 @@ impl RestClient {
         res
     }
 
-    // pub async fn get(&self, url: &Url) -> String {
-    //     let res = self.client.get(&url).await.expect("parsing of string");
-
-    //     res
-    // }
-
     pub async fn post(&self, url: &Url, json: &str) -> Result<(), surf::Error> {
         self.client.post(&url).body_json(&json)?.await?;
 
         Ok(())
     }
 }
-
-// #[derive(Deserialize, Serialize)]
-// struct Res {
-//     res: String,
-// }

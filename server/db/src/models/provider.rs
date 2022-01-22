@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{Error, FromRow};
 
-use crate::{ConnectionPool, CRUD};
+use crate::{Connection, CRUD};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ProviderRequest {
-    name: String,
-    source: String,
-    groups: String,
-    channels: String,
+    pub name: String,
+    pub source: String,
+    pub groups: String,
+    pub channels: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -22,27 +22,19 @@ pub struct ProviderModel {
 }
 
 #[derive(Debug, Clone)]
-pub struct Provider {
-    db: ConnectionPool,
-}
-
-impl Provider {
-    pub fn new(db: ConnectionPool) -> Provider {
-        Provider { db }
-    }
-}
+pub struct Provider {}
 
 #[async_trait::async_trait]
 impl CRUD<ProviderModel, ProviderRequest> for Provider {
-    async fn get(&self, id: u64) -> Result<ProviderModel, Error> {
+    async fn get(&self, tx: &mut Connection, id: u64) -> Result<ProviderModel, Error> {
         let res = sqlx::query_as!(ProviderModel, "select * from provider where id = ?", id)
-            .fetch_one(&self.db)
+            .fetch_one(tx)
             .await;
 
         res
     }
 
-    async fn insert(&self, provider: ProviderRequest) -> Result<u64, Error> {
+    async fn insert(&self, tx: &mut Connection, provider: ProviderRequest) -> Result<u64, Error> {
         let res = sqlx::query_as!(
             ProviderModel,
             r#"insert into provider (name, source, groups, channels) values (?, ?, ?, ?)"#,
@@ -51,16 +43,16 @@ impl CRUD<ProviderModel, ProviderRequest> for Provider {
             provider.groups,
             provider.channels
         )
-        .execute(&self.db)
+        .execute(tx)
         .await?
         .last_insert_id();
 
         Ok(res)
     }
 
-    async fn delete(&self, id: u64) -> Result<u64, Error> {
+    async fn delete(&self, tx: &mut Connection, id: u64) -> Result<u64, Error> {
         let res = sqlx::query_as!(u64, r#"delete from provider where id = ?"#, id)
-            .execute(&self.db)
+            .execute(tx)
             .await?
             .rows_affected();
 

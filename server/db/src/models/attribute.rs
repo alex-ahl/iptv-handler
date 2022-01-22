@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{Error, FromRow};
 
-use crate::{ConnectionPool, CRUD};
+use crate::{Connection, CRUD};
 
 #[derive(Debug, Clone)]
 pub struct AttributeRequest {
-    key: String,
-    value: String,
-    provider_id: u64,
+    pub key: String,
+    pub value: String,
+    pub extinf_id: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -15,52 +15,40 @@ pub struct AttributeModel {
     id: u64,
     key: String,
     value: String,
-    provider_id: Option<u64>,
+    extinf_id: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
-pub struct Attribute {
-    db: ConnectionPool,
-}
-
-impl Attribute {
-    pub fn new(db: ConnectionPool) -> Attribute {
-        Attribute { db }
-    }
-}
+pub struct Attribute {}
 
 #[async_trait::async_trait]
 impl CRUD<AttributeModel, AttributeRequest> for Attribute {
-    async fn get(&self, id: u64) -> Result<AttributeModel, Error> {
+    async fn get(&self, tx: &mut Connection, id: u64) -> Result<AttributeModel, Error> {
         let res = sqlx::query_as!(AttributeModel, "select * from attribute where id = ?", id)
-            .fetch_one(&self.db)
+            .fetch_one(tx)
             .await;
 
         res
     }
 
-    async fn insert(&self, attribute: AttributeRequest) -> Result<u64, Error> {
-        let mut tx = self.db.begin().await?;
-
+    async fn insert(&self, tx: &mut Connection, attribute: AttributeRequest) -> Result<u64, Error> {
         let res = sqlx::query_as!(
             AttributeModel,
-            r#"insert into attribute (`key`, `value`, provider_id) values (?, ?, ?)"#,
+            r#"insert into attribute (`key`, `value`, extinf_id) values (?, ?, ?)"#,
             attribute.key,
             attribute.value,
-            attribute.provider_id
+            attribute.extinf_id
         )
-        .execute(&mut tx)
+        .execute(tx)
         .await?
         .last_insert_id();
-
-        tx.commit().await?;
 
         Ok(res)
     }
 
-    async fn delete(&self, id: u64) -> Result<u64, Error> {
+    async fn delete(&self, tx: &mut Connection, id: u64) -> Result<u64, Error> {
         let res = sqlx::query_as!(u64, r#"delete from attribute where id = ?"#, id)
-            .execute(&self.db)
+            .execute(tx)
             .await?
             .rows_affected();
 

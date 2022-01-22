@@ -4,7 +4,8 @@ use std::{
     iter::Skip,
 };
 
-use log::warn;
+use anyhow::Context;
+use log::{info, warn};
 use regex::Regex;
 use url::Url;
 
@@ -13,18 +14,20 @@ use super::{
     models::{ExtInf, M3U},
 };
 
-pub async fn parse_m3u(url: Url) -> M3U {
-    let res = get_m3u(&url).await.expect("getting of successful result");
+pub async fn parse_m3u_url(url: Url) -> Result<M3U, anyhow::Error> {
+    let res = get_m3u(&url).await.context("Could not get M3U content")?;
 
     let m3u = BufReader::new(res.as_bytes()).lines();
+
+    // IS VALID M3U file here
 
     let lines = skip_ext_m3u_line(m3u);
 
     let parsed_extinf_lines = parse_extinf_lines(lines).to_vec();
 
-    M3U {
+    Ok(M3U {
         extinfs: parsed_extinf_lines,
-    }
+    })
 }
 
 fn skip_ext_m3u_line(lines: Lines<BufReader<&[u8]>>) -> Skip<Lines<BufReader<&[u8]>>> {
@@ -44,7 +47,9 @@ fn parse_extinf_lines(mut lines: Skip<Lines<BufReader<&[u8]>>>) -> Box<Vec<ExtIn
                 name: parse_name(&metadata),
                 attributes: parse_attributes(&metadata),
                 url: url.unwrap(),
-            })
+            });
+
+            info!("Successfully parsed line: {}", metadata);
         } else {
             warn!("Could not parse line: {}", metadata)
         }

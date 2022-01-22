@@ -9,4 +9,5 @@ edition = "2018"
 url = "2.2.2"
 regex = "1.5.4"
 log = "0.4.14"
+anyhow = "1.0.53"
 rest-client = { path = "../rest-client" }

@@ -7,8 +7,14 @@ edition = "2018"
 
 [dependencies]
 warp = "0.3.2"
-serde = { version = "1.0.130", features = ["derive"] }
+serde = { version = "1.0.132", features = ["derive"] }
 serde_json = "1.0.73"
+async-trait = "0.1.52"
 url = "2.2.2"
+anyhow = "1.0.53"
+futures = "0.3.21"
+log = "0.4.14"
+sqlx = { version = "0.5.6", default-features = false, features = [ "mysql" ] }
 rest-client = { path = "../rest-client" }
 db = { path = "../db" }
+iptv = { path = "../iptv" }

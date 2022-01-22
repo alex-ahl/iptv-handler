@@ -1,19 +1,14 @@
-use std::sync::Arc;
-
 use db::DB;
 use rest_client::RestClient;
-use routes::get_routes;
+use std::sync::Arc;
 use warp::Filter;
 
-pub mod filters;
-pub mod handlers;
-pub mod models;
-pub mod routes;
-mod services;
+pub mod provider;
+pub mod root;
 
-pub fn init_api(
+pub fn get_routes(
     db: Arc<DB>,
     client: Arc<RestClient>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    get_routes(db, client)
+    root::root_routes().or(provider::provider_routes(db, client))
 }
