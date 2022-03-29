@@ -4,7 +4,7 @@
     "tabWidth": 4,
     "semi": false,
     "singleQuote": true,
-    "bracketSpacing": false,
+    "bracketSpacing": true,
     "jsxBracketSameLine": false,
     "arrowParens": "always",
     "endOfLine": "auto",
