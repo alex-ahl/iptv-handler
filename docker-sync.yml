@@ -6,13 +6,6 @@ syncs:
       '.git'
     ]
     sync_strategy: 'native_osx'
-  gui_sync:
-    src: './gui'
-    sync_excludes: [
-      '.git',
-      'node_modules'
-    ]
-    sync_strategy: 'native_osx'
   db_sync:
     src: '~/docker-volumes/db'
     sync_strategy: 'native_osx'
