@@ -3,6 +3,7 @@ services:
   db:
     image: "mariadb:latest"
     restart: always
+    command: mariadb --log-warnings 1
     ports:
       - 3306:3306
     volumes:

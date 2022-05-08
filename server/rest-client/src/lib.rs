@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 use std::time::Duration;
 
-// use serde::{Deserialize, Serialize};
 use surf::{Client, Config, Url};
 
 #[derive(Clone)]
