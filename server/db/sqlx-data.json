@@ -1,326 +1,326 @@
 {
   "db": "MySQL",
   "0471e50b8433805f0bfee080143d4b7ef46a2d24b9472213a8677be7fa256206": {
-    "query": "delete from extinf where id = ?",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Right": 1
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "delete from extinf where id = ?"
   },
   "4c67eefe72732103e413ce23ad00fdaf1e2ef9b9a5067b25086a24f6f5a7f595": {
-    "query": "insert into attribute (`key`, `value`, extinf_id) values (?, ?, ?)",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Right": 3
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "insert into attribute (`key`, `value`, extinf_id) values (?, ?, ?)"
   },
   "5d1a5e508eb3635ec6e0ddfc60af242f768ee7a00ca103f7da5af825af67a79a": {
-    "query": "select * from provider where id = ?",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "id",
+          "ordinal": 0,
           "type_info": {
-            "type": "LongLong",
+            "char_set": 63,
             "flags": {
               "bits": 547
             },
-            "char_set": 63,
-            "max_size": 20
+            "max_size": 20,
+            "type": "LongLong"
           }
         },
         {
-          "ordinal": 1,
           "name": "name",
+          "ordinal": 1,
           "type_info": {
-            "type": "Blob",
+            "char_set": 224,
             "flags": {
               "bits": 4113
             },
-            "char_set": 224,
-            "max_size": 262140
+            "max_size": 262140,
+            "type": "Blob"
           }
         },
         {
-          "ordinal": 2,
           "name": "source",
+          "ordinal": 2,
           "type_info": {
-            "type": "Blob",
+            "char_set": 224,
             "flags": {
               "bits": 4113
             },
-            "char_set": 224,
-            "max_size": 262140
+            "max_size": 262140,
+            "type": "Blob"
           }
         },
         {
-          "ordinal": 3,
           "name": "groups",
+          "ordinal": 3,
           "type_info": {
-            "type": "Blob",
+            "char_set": 224,
             "flags": {
               "bits": 4113
             },
-            "char_set": 224,
-            "max_size": 262140
+            "max_size": 262140,
+            "type": "Blob"
           }
         },
         {
-          "ordinal": 4,
           "name": "channels",
+          "ordinal": 4,
           "type_info": {
-            "type": "Blob",
+            "char_set": 224,
             "flags": {
               "bits": 4113
             },
-            "char_set": 224,
-            "max_size": 262140
+            "max_size": 262140,
+            "type": "Blob"
           }
         }
       ],
-      "parameters": {
-        "Right": 1
-      },
       "nullable": [
         false,
         false,
         false,
         false,
         false
-      ]
-    }
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select * from provider where id = ?"
   },
   "66de69664e2d543d14f9cb20f98e922daa2df19da25941a35fea8130ba2a5d10": {
-    "query": "select * from extinf where id = ?",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "id",
+          "ordinal": 0,
           "type_info": {
-            "type": "LongLong",
+            "char_set": 63,
             "flags": {
               "bits": 547
             },
-            "char_set": 63,
-            "max_size": 20
+            "max_size": 20,
+            "type": "LongLong"
           }
         },
         {
-          "ordinal": 1,
           "name": "name",
+          "ordinal": 1,
           "type_info": {
-            "type": "Blob",
+            "char_set": 224,
             "flags": {
               "bits": 4113
             },
-            "char_set": 224,
-            "max_size": 262140
+            "max_size": 262140,
+            "type": "Blob"
           }
         },
         {
-          "ordinal": 2,
           "name": "url",
+          "ordinal": 2,
           "type_info": {
-            "type": "Blob",
+            "char_set": 224,
             "flags": {
               "bits": 4113
             },
-            "char_set": 224,
-            "max_size": 262140
+            "max_size": 262140,
+            "type": "Blob"
           }
         },
         {
-          "ordinal": 3,
           "name": "m3u_id",
+          "ordinal": 3,
           "type_info": {
-            "type": "LongLong",
+            "char_set": 63,
             "flags": {
               "bits": 40
             },
-            "char_set": 63,
-            "max_size": 20
+            "max_size": 20,
+            "type": "LongLong"
           }
         }
       ],
-      "parameters": {
-        "Right": 1
-      },
       "nullable": [
         false,
         false,
         false,
         true
-      ]
-    }
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select * from extinf where id = ?"
   },
   "7b2652b1bdc281b0fc6e052724a81d7b22bc6d8fca059eacc2f717dac384fd9f": {
-    "query": "insert into provider (name, source, groups, channels) values (?, ?, ?, ?)",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Right": 4
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "insert into provider (name, source, groups, channels) values (?, ?, ?, ?)"
   },
   "892bdc8916807c9211289cdc32259f47375f6a3e5c945a4b5f4ae2cf0c36e3f1": {
-    "query": "delete from m3u where id = ?",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Right": 1
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "delete from m3u where id = ?"
   },
   "91fedeb7309460e7918eb6faaf1afc1bbdcbe66ea50dca45c27989aec8b45a2f": {
-    "query": "delete from provider where id = ?",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Right": 1
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "delete from provider where id = ?"
   },
   "9bccae44f8607ad7a3310b9435a061ab96854deb6983f33346f17830d491b84c": {
-    "query": "select * from m3u where id = ?",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "id",
+          "ordinal": 0,
           "type_info": {
-            "type": "LongLong",
+            "char_set": 63,
             "flags": {
               "bits": 547
             },
-            "char_set": 63,
-            "max_size": 20
+            "max_size": 20,
+            "type": "LongLong"
           }
         },
         {
-          "ordinal": 1,
           "name": "provider_id",
+          "ordinal": 1,
           "type_info": {
-            "type": "LongLong",
+            "char_set": 63,
             "flags": {
               "bits": 40
             },
-            "char_set": 63,
-            "max_size": 20
+            "max_size": 20,
+            "type": "LongLong"
           }
         }
       ],
-      "parameters": {
-        "Right": 1
-      },
       "nullable": [
         false,
         true
-      ]
-    }
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select * from m3u where id = ?"
   },
   "cf4e9bc4882af7b10a3048c57d75713e39390b0147521dbd46246e441b676abd": {
-    "query": "select * from attribute where id = ?",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "id",
+          "ordinal": 0,
           "type_info": {
-            "type": "LongLong",
+            "char_set": 63,
             "flags": {
               "bits": 547
             },
-            "char_set": 63,
-            "max_size": 20
+            "max_size": 20,
+            "type": "LongLong"
           }
         },
         {
-          "ordinal": 1,
           "name": "key",
+          "ordinal": 1,
           "type_info": {
-            "type": "Blob",
+            "char_set": 224,
             "flags": {
               "bits": 4113
             },
-            "char_set": 224,
-            "max_size": 262140
+            "max_size": 262140,
+            "type": "Blob"
           }
         },
         {
-          "ordinal": 2,
           "name": "value",
+          "ordinal": 2,
           "type_info": {
-            "type": "Blob",
+            "char_set": 224,
             "flags": {
               "bits": 4113
             },
-            "char_set": 224,
-            "max_size": 262140
+            "max_size": 262140,
+            "type": "Blob"
           }
         },
         {
-          "ordinal": 3,
           "name": "extinf_id",
+          "ordinal": 3,
           "type_info": {
-            "type": "LongLong",
+            "char_set": 63,
             "flags": {
               "bits": 40
             },
-            "char_set": 63,
-            "max_size": 20
+            "max_size": 20,
+            "type": "LongLong"
           }
         }
       ],
-      "parameters": {
-        "Right": 1
-      },
       "nullable": [
         false,
         false,
         false,
         true
-      ]
-    }
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select * from attribute where id = ?"
   },
   "d6df7981d3dc470976ed7605b9a8588f4bc2ff89c0ba345d961e107f74eaf230": {
-    "query": "insert into extinf (name, url, m3u_id) values (?, ?, ?)",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Right": 3
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "insert into extinf (name, url, m3u_id) values (?, ?, ?)"
   },
   "e5cb9c91ce4c3a1427b2b470492f2db160cd6f6240bf040f6d4bf2a78e1fd1e4": {
-    "query": "delete from attribute where id = ?",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Right": 1
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "delete from attribute where id = ?"
   },
   "fb556a90c2d87b33cb9c43691195191fa9e94ae48bc639f58c7c895504110206": {
-    "query": "insert into m3u (provider_id) values (?)",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Right": 1
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "insert into m3u (provider_id) values (?)"
   }
 }

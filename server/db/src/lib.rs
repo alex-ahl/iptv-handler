@@ -1,7 +1,9 @@
 pub mod models;
 use models::{Attribute, ExtInf, M3u, Provider};
-use sqlx::{migrate, Error, MySql, MySqlConnection, MySqlPool, Pool};
+use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
+use sqlx::{migrate, Error, MySql, MySqlConnection, Pool};
 use std::fmt::Debug;
+use std::str::FromStr;
 use std::{env, sync::Arc};
 
 pub type ConnectionPool = Pool<MySql>;
@@ -10,7 +12,11 @@ pub type Connection = MySqlConnection;
 pub async fn connect() -> ConnectionPool {
     let connection_string = env::var("DATABASE_URL").unwrap();
 
-    MySqlPool::connect(&connection_string)
+    let connection_options = MySqlConnectOptions::from_str(&connection_string)
+        .expect("Parsing of connection string failed");
+
+    MySqlPoolOptions::new()
+        .connect_with(connection_options)
         .await
         .expect("creating database connection")
 }

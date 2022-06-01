@@ -1,21 +1,22 @@
 version: "2.4"
 services:
   db:
-    image: "mariadb:latest"
+    image: "mariadb:10.7.3"
     restart: always
-    command: mariadb --log-warnings 1
+    # command: mariadb
     ports:
       - 3306:3306
     volumes:
       - db_sync:/var/lib/mysql:nocopy
     environment:
-      MYSQL_ROOT_PASSWORD: "db"
-      MYSQL_DATABASE: "iptvproxy"
-      MYSQL_USER: "db"
-      MYSQL_PASSWORD: "db"
+      MARIADB_ROOT_PASSWORD: "db"
+      MARIADB_DATABASE: "iptvhandler"
+      MARIADB_USER: "db"
+      MARIADB_PASSWORD: "db"
+    logging:
+      driver: none
     networks:
-      - iptvproxy
-
+      - iptvhandler
   migration:
     build:
       context: ./db
@@ -23,7 +24,7 @@ services:
     depends_on:
       - db
     networks:
-      - iptvproxy
+      - iptvhandler
     restart: "no"
     env_file: ./server/db/.env
     volumes:
@@ -33,6 +34,7 @@ services:
       context: ./server
       dockerfile: Dockerfile.develop
     command: bash -c "( cd db ; touch ./src/lib.rs && cargo sqlx prepare -- --lib ) && cargo watch -x run"
+    tty: true
     ports:
       - "3001:3001"
     volumes:
@@ -40,17 +42,18 @@ services:
     env_file: ./server/db/.env
     environment:
       PORT: 3001
-      RUST_LOG: "info"
+      RUST_LOG: warn,server=warn,iptv=info,api=warn,rest-client=warn
+
       M3U: "https://iptv-org.github.io/iptv/countries/se.m3u"
     depends_on:
       - db
     networks:
-      - iptvproxy
+      - iptvhandler
 volumes:
   server_sync:
     external: true
   db_sync:
     external: true
 networks:
-  iptvproxy:
-    name: iptvproxy
+  iptvhandler:
+    name: iptvhandler

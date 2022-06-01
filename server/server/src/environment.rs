@@ -16,7 +16,7 @@ pub struct Configuration {
 }
 
 fn default_port() -> u16 {
-    8000
+    3001
 }
 
 fn default_backend_mode_only() -> bool {

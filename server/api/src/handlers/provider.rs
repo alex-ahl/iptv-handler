@@ -5,7 +5,6 @@ use db::{models::ProviderRequest, DB};
 
 use iptv::m3u::parser::parse_m3u_url;
 use log::error;
-use rest_client::RestClient;
 use sqlx::{MySql, Transaction};
 use url::Url;
 use warp::{
@@ -31,7 +30,6 @@ enum Conn<'a> {
 pub async fn create_provider(
     provider: ProviderRequest,
     db: Arc<DB>,
-    _client: Arc<RestClient>,
 ) -> Result<Response, Infallible> {
     let tx = match db
         .pool

@@ -8,7 +8,6 @@ use api::init_api;
 use app::init_app;
 use db::{handle_migrations, init_db};
 use environment::init_env;
-use rest_client::RestClient;
 use warp::{serve, Filter};
 
 use crate::{environment::Configuration, logger::init_logger};
@@ -16,18 +15,18 @@ use crate::{environment::Configuration, logger::init_logger};
 #[tokio::main]
 async fn main() {
     init_logger();
-    let environment: Configuration = init_env();
+    let env: Configuration = init_env();
 
     let pool = db::connect().await;
     handle_migrations(&pool).await;
 
     let db = init_db(pool).await;
-    let client = RestClient::new();
+    let db = Arc::new(db);
 
-    let api = init_api(Arc::new(db), Arc::new(client.clone())).with(warp::log("warp-server"));
+    let api = init_api(db.clone()).with(warp::log("warp-server"));
 
-    if environment.backend_mode_only {
-        init_app(client).await;
+    if env.backend_mode_only {
+        init_app(env.m3u, db).await;
     }
 
     serve(api).run(([0, 0, 0, 0], 3001)).await;

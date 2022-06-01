@@ -19,7 +19,7 @@ Which in turn will create tables and basic data using sql files in the `server -
 
 ## Good to know
 
-Add DATABASE_URL="mysql://db:db@host.docker.internal:3306/iptvproxy" to an .env file
+Add DATABASE_URL="mysql://db:db@host.docker.internal:3306/iptvhandler" to an .env file
 
 **SQLX** requirements for static type checking of SQL queries:
 
