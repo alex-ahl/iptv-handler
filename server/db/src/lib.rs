@@ -4,16 +4,14 @@ use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
 use sqlx::{migrate, Error, MySql, MySqlConnection, Pool};
 use std::fmt::Debug;
 use std::str::FromStr;
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
 pub type ConnectionPool = Pool<MySql>;
 pub type Connection = MySqlConnection;
 
-pub async fn connect() -> ConnectionPool {
-    let connection_string = env::var("DATABASE_URL").unwrap();
-
-    let connection_options = MySqlConnectOptions::from_str(&connection_string)
-        .expect("Parsing of connection string failed");
+pub async fn connect(database_url: String) -> ConnectionPool {
+    let connection_options =
+        MySqlConnectOptions::from_str(&database_url).expect("Parsing of connection string failed");
 
     MySqlPoolOptions::new()
         .connect_with(connection_options)

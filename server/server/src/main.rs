@@ -17,7 +17,7 @@ async fn main() {
     init_logger();
     let env: Configuration = init_env();
 
-    let pool = db::connect().await;
+    let pool = db::connect(env.database_url).await;
     handle_migrations(&pool).await;
 
     let db = init_db(pool).await;

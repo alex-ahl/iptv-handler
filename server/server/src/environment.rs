@@ -13,6 +13,7 @@ pub struct Configuration {
     #[serde(default = "default_backend_mode_only")]
     pub backend_mode_only: bool,
     pub m3u: Url,
+    pub database_url: String,
 }
 
 fn default_port() -> u16 {
