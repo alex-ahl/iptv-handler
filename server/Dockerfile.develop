@@ -1,5 +1,5 @@
 
-FROM lukemathwalker/cargo-chef:0.1.33-rust-1.57-slim-buster AS chef
+FROM lukemathwalker/cargo-chef:0.1.35-rust-1.61-slim-bullseye as chef
 
 FROM chef AS planner
 COPY . .
