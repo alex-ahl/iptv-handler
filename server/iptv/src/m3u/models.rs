@@ -12,4 +12,5 @@ pub struct ExtInf {
     pub name: String,
     pub attributes: HashMap<String, String>,
     pub url: Url,
+    pub group_title: String,
 }

@@ -3,7 +3,10 @@ use std::{convert::Infallible, sync::Arc};
 use anyhow::Context;
 use db::{models::ProviderRequest, DB};
 
-use iptv::m3u::parser::parse_m3u_url;
+use iptv::m3u::{
+    parser::parse_m3u_url,
+    tools::{count_channels, count_groups},
+};
 use log::error;
 use sqlx::{MySql, Transaction};
 use url::Url;
@@ -14,7 +17,7 @@ use warp::{
 };
 
 use crate::{
-    models::error::ApiError,
+    models::{error::ApiError, CreateProviderRequestApiModel},
     services::provider::{CreateProviderRequest, Service},
 };
 
@@ -28,7 +31,7 @@ enum Conn<'a> {
 }
 
 pub async fn create_provider(
-    provider: ProviderRequest,
+    provider: CreateProviderRequestApiModel,
     db: Arc<DB>,
 ) -> Result<Response, Infallible> {
     let tx = match db
@@ -60,7 +63,7 @@ pub async fn create_provider(
             }
         };
 
-        let parsed_m3u = match parse_m3u_url(url).await.context("Could not parse M3U") {
+        let parsed_m3u = match parse_m3u_url(&url).await.context("Could not parse M3U") {
             Ok(m3u) => m3u,
             Err(e) => {
                 error!("{}", e.root_cause());
@@ -79,7 +82,12 @@ pub async fn create_provider(
         };
 
         let req = CreateProviderRequest {
-            provider_request: provider,
+            provider_request: ProviderRequest {
+                name: None,
+                source: url.to_string(),
+                channels: Some(count_channels(&parsed_m3u)),
+                groups: Some(count_groups(&parsed_m3u)),
+            },
             m3u: parsed_m3u,
         };
 

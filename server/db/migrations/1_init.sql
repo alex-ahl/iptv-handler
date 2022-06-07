@@ -1,9 +1,9 @@
 CREATE TABLE IF NOT EXISTS provider (
     id BIGINT UNSIGNED PRIMARY KEY NOT NULL AUTO_INCREMENT,
-    `name` TEXT NOT NULL,
+    `name` TEXT,
     source TEXT NOT NULL,
-    groups TEXT NOT NULL,
-    channels TEXT NOT NULL
+    groups INT UNSIGNED,
+    channels INT UNSIGNED
 );
 
 CREATE TABLE IF NOT EXISTS m3u (
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS attribute (
      FOREIGN KEY (extinf_id) REFERENCES extinf(id)
 );
 
-INSERT INTO provider VALUES (1, "temp", "https://iptv-org.github.io/iptv/countries/se.m3u", "temp", "temp");
+INSERT INTO provider VALUES (1, "temp", "https://iptv-org.github.io/iptv/countries/se.m3u", 0, 0);
 INSERT INTO m3u VALUES (1, 1);
 INSERT INTO extinf VALUES (1, "Channel name 1", "https://google.se", 1);
 INSERT INTO extinf VALUES (2, "Channel name 2", "https://google.se", 1);

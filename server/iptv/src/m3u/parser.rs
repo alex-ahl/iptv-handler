@@ -15,7 +15,7 @@ use super::{
     models::{ExtInf, M3U},
 };
 
-pub async fn parse_m3u_url(url: Url) -> Result<M3U, anyhow::Error> {
+pub async fn parse_m3u_url(url: &Url) -> Result<M3U, anyhow::Error> {
     let m3u = get_m3u(&url).await.context("Could not get M3U content")?;
 
     let m3u = BufReader::new(m3u.as_bytes()).lines();
@@ -64,10 +64,17 @@ fn parse_extinf_lines(lines: Skip<Iter<String>>) -> Box<Vec<ExtInf>> {
 
         match url {
             Ok(url) if valid_extinf_line.is_match(&metadata) => {
+                let attributes = parse_attributes(&metadata);
+                let group_title = attributes
+                    .get_key_value("group-title")
+                    .map(|value| value.1.clone())
+                    .unwrap_or_default();
+
                 parsed_extinf_lines.push(ExtInf {
                     name: parse_name(&metadata),
-                    attributes: parse_attributes(&metadata),
+                    attributes,
                     url: url.clone(),
+                    group_title,
                 });
 
                 info!(

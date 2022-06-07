@@ -5,20 +5,20 @@ use crate::{Connection, CRUD};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ProviderRequest {
-    pub name: String,
+    pub name: Option<String>,
     pub source: String,
-    pub groups: String,
-    pub channels: String,
+    pub groups: Option<u32>,
+    pub channels: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 
 pub struct ProviderModel {
     id: u64,
-    name: String,
+    name: Option<String>,
     pub source: String,
-    groups: String,
-    channels: String,
+    groups: Option<u32>,
+    channels: Option<u32>,
 }
 
 #[derive(Debug, Clone)]
@@ -27,9 +27,13 @@ pub struct Provider {}
 #[async_trait::async_trait]
 impl CRUD<ProviderModel, ProviderRequest> for Provider {
     async fn get(&self, tx: &mut Connection, id: u64) -> Result<ProviderModel, Error> {
-        let res = sqlx::query_as!(ProviderModel, "select * from provider where id = ?", id)
-            .fetch_one(tx)
-            .await;
+        let res = sqlx::query_as!(
+            ProviderModel,
+            "select id, name, source, groups, channels from provider where id = ?",
+            id
+        )
+        .fetch_one(tx)
+        .await;
 
         res
     }
