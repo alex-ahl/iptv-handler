@@ -1,0 +1,4 @@
+[workspace]
+members = ["db", "server", "api", "iptv"]
+
+rustflags = ["-Clinker=rust-lld"]

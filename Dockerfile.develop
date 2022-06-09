@@ -2,7 +2,7 @@
 FROM lukemathwalker/cargo-chef:0.1.35-rust-1.61-slim-bullseye as chef
 
 FROM chef AS planner
-COPY . .
+COPY ./src .
 
 RUN apt update && \ 
     apt install pkg-config -y && \

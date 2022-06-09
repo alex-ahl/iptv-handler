@@ -1,19 +1,19 @@
 # Rust as the base image
-FROM rust:1.57 as build
+FROM rust:1.61 as build
 
 # Create a new empty shell project
 RUN USER=root cargo new --bin iptvmanager
 WORKDIR /iptvmanager
 
 # Copy our manifests
-COPY ./Cargo.lock ./Cargo.lock
-COPY ./Cargo.toml ./Cargo.toml
+COPY ./src/Cargo.lock ./Cargo.lock
+COPY ./src/Cargo.toml ./Cargo.toml
 
-COPY ./db ./db
-COPY ./api ./api
-COPY ./iptv ./iptv
-COPY ./rest-client ./rest-client
-COPY ./server ./server
+COPY ./src/db ./db
+COPY ./src/api ./api
+COPY ./src/iptv ./iptv
+COPY ./src/rest-client ./rest-client
+COPY ./src/server ./server
 
 # Build only the dependencies to cache them
 ENV SQLX_OFFLINE true

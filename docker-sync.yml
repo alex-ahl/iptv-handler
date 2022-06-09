@@ -1,7 +1,7 @@
 version: "2"
 syncs:
   server_sync:
-    src: "./server"
+    src: "./src"
     sync_excludes: [".git"]
     sync_strategy: "native_osx"
     sync_args:

@@ -1,2 +1,0 @@
-[workspace]
-members = ["db", "server", "api", "iptv"]
