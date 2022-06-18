@@ -10,13 +10,15 @@ Pure SQL using SQLX as fully async driver.
 
 ## Setup
 
-### Settable environment variables
+### _Settable environment variables_
 
+```bash
 - DATABASE_URL - Connection string to your DB
 - M3U - URL to the M3U playlist (.m3u)
 - BACKEND_MODE_ONLY - If true, initialize app with M3U playlist environment variable. Requires M3U variable to be set and a valid URL.
 - PORT - Port to run on (Default 3001)
 - RUST_LOG - Log level (Example: warn,server=warn,iptv=info,api=warn,rest-client=warn)
+```
 
 ### _Production_
 
