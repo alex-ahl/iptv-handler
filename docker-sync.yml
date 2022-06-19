@@ -1,12 +1,11 @@
 version: "2"
 syncs:
-  server_sync:
+  app_sync:
     src: "./src"
     sync_excludes: [".git", ".DS_Store"]
     sync_strategy: "native_osx"
     sync_args:
       - "-logfile=/tmp/unison.log"
-
   db_sync:
     src: "~/docker-volumes/db"
     sync_strategy: "native_osx"

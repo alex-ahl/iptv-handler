@@ -1,8 +1,9 @@
-FROM rust:1.61-slim-buster
+FROM rust:1.61-slim-bullseye
 
-WORKDIR /init
+RUN apt update && \ 
+    apt install pkg-config -y && \
+    apt install libssl-dev -y
 
 RUN cargo install sqlx-cli --no-default-features --features rustls,mysql
 
-COPY ./scripts/wait-for-it.sh .
-RUN chmod +x ./wait-for-it.sh
+WORKDIR /usr/src/app/db

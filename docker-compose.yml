@@ -2,7 +2,6 @@ version: "3.7"
 services:
   db:
     image: "mariadb:10.7.3"
-    restart: always
     ports:
       - 3306:3306
     volumes:
@@ -17,7 +16,7 @@ services:
     networks:
       - iptvhandler
     healthcheck:
-      test: "mysql iptvhandler -udb -pdb -e 'SELECT 1;'  || exit 1"
+      test: "mysql iptvhandler -udb -pdb -e 'SELECT 1;' || exit 1"
       start_period: 1s
       interval: 1s
       timeout: 1s
@@ -29,13 +28,13 @@ services:
     command: >
       bash -c "sqlx database drop -y && 
                sqlx database create && 
-               sqlx migrate run"
+               sqlx migrate run &&
+               cargo sqlx prepare -- --lib"
     networks:
       - iptvhandler
-    restart: "no"
     env_file: ./src/.env
     volumes:
-      - ./src/db/migrations:/init/migrations
+      - app_sync:/usr/src/app:nocopy # docker-sync to speed up slow compiles
     depends_on:
       db:
         condition: service_healthy
@@ -43,15 +42,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.develop
-    command: >
-      bash -c "cargo sqlx prepare -- --manifest-path ./db/Cargo.toml --lib &&
-               cargo build && 
-               cargo watch -x run"
-    tty: true
+    command: cargo watch -x run
+    tty: true # color terminal output
     ports:
       - "3001:3001"
     volumes:
-      - server_sync:/usr/src/app:nocopy # docker-sync to speed up slow compiles
+      - app_sync:/usr/src/app:nocopy # docker-sync to speed up slow compiles
     env_file: ./src/.env
     networks:
       - iptvhandler
@@ -59,7 +55,7 @@ services:
       migration:
         condition: "service_completed_successfully"
 volumes:
-  server_sync:
+  app_sync:
     external: true
   db_sync:
     external: true

@@ -12,7 +12,6 @@ RUN cargo chef prepare --recipe-path recipe.json
 RUN cargo chef cook --recipe-path recipe.json
 
 RUN cargo install cargo-watch
-RUN cargo install sqlx-cli --no-default-features --features rustls,mysql
 
 WORKDIR /usr/src/app
 
