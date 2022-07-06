@@ -15,11 +15,31 @@ pub struct AttributeModel {
     id: u64,
     key: String,
     value: String,
-    extinf_id: Option<u64>,
+
+    #[serde(skip)]
+    pub extinf_id: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Attribute {}
+
+impl Attribute {
+    pub async fn get_all_by_extinf_id(
+        &self,
+        tx: &mut Connection,
+        extinf_id: u64,
+    ) -> Result<Vec<AttributeModel>, Error> {
+        let res = sqlx::query_as!(
+            AttributeModel,
+            "select * from attribute where extinf_id = ?",
+            extinf_id
+        )
+        .fetch_all(tx)
+        .await;
+
+        res
+    }
+}
 
 #[async_trait::async_trait]
 impl CRUD<AttributeModel, AttributeRequest> for Attribute {

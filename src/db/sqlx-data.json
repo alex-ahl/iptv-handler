@@ -10,6 +10,147 @@
     },
     "query": "delete from extinf where id = ?"
   },
+  "10a907c86abccbb796b84674ad70a71e61ad2a506b2ee71e8f92d643e71ff117": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "url",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "m3u_id",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "select * from extinf"
+  },
+  "3b732c8ce59ed1351500716ec08ec5041880e9be12f76e3ac96fed12c58dbdc1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "source",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "groups",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 32
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        },
+        {
+          "name": "channels",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 32
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "select id, name, source, groups, channels from provider"
+  },
   "4c67eefe72732103e413ce23ad00fdaf1e2ef9b9a5067b25086a24f6f5a7f595": {
     "describe": {
       "columns": [],
@@ -151,6 +292,70 @@
       }
     },
     "query": "select * from m3u where id = ?"
+  },
+  "c0255ca8d3f3619163e3b9784758469506f4c2063d1c182c16f4999632578c5e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "key",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "value",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "extinf_id",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "select * from attribute"
   },
   "cf4e9bc4882af7b10a3048c57d75713e39390b0147521dbd46246e441b676abd": {
     "describe": {

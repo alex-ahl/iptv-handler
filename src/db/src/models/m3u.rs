@@ -12,7 +12,9 @@ pub struct M3uRequest {
 
 pub struct M3uModel {
     id: u64,
-    provider_id: Option<u64>,
+
+    #[serde(skip)]
+    pub provider_id: Option<u64>,
 }
 
 #[derive(Debug, Clone)]

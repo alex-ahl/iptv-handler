@@ -14,4 +14,6 @@ pub async fn init_app(m3u: Url, db: Arc<DB>) {
     )
     .await
     .expect("Provider created");
+
+    // let test = generate_playlist();
 }

@@ -1,7 +1,7 @@
 use std::{convert::Infallible, sync::Arc};
 
 use anyhow::Context;
-use db::{models::ProviderRequest, DB};
+use db::{models::ProviderRequest, services::provider::ProviderApiModel, DB};
 
 use iptv::m3u::{
     parser::parse_m3u_url,
@@ -125,11 +125,23 @@ pub async fn create_provider(
     )
 }
 
-pub async fn get_provider(id: String, db: Arc<DB>) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let _id = id;
-    let _db = db;
-    println!("{:?}", _id);
-    Ok(Box::new(StatusCode::OK))
+pub async fn get_provider(id: u64, db: Arc<DB>) -> Result<impl warp::Reply, Infallible> {
+    let mut provider = ProviderApiModel::new();
+    provider.initialize_db(db);
+
+    let provider = provider.get_provider(id).await;
+
+    if let Err(err) = provider {
+        error!("{}", err);
+
+        return Ok(reply::with_status(
+            reply::json(&ApiError {}),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+        .into_response());
+    };
+
+    Ok(reply::json(&provider.unwrap()).into_response())
 }
 
 pub async fn update_provider(

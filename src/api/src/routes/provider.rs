@@ -38,11 +38,11 @@ fn create_provider(
         .and_then(handlers::provider::create_provider)
 }
 
-/// GET /providers/{guid}
+/// GET /providers/{u64}
 fn get_provider(
     db: Arc<DB>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path!("provider" / String)
+    warp::path!("provider" / u64)
         .and(warp::get())
         .and(with_db(db))
         .and_then(handlers::provider::get_provider)

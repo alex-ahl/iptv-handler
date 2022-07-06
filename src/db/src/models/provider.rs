@@ -24,6 +24,19 @@ pub struct ProviderModel {
 #[derive(Debug, Clone)]
 pub struct Provider {}
 
+impl Provider {
+    pub async fn get_all(&self, tx: &mut Connection) -> Result<Vec<ProviderModel>, Error> {
+        let res = sqlx::query_as!(
+            ProviderModel,
+            "select id, name, source, groups, channels from provider",
+        )
+        .fetch_all(tx)
+        .await;
+
+        res
+    }
+}
+
 #[async_trait::async_trait]
 impl CRUD<ProviderModel, ProviderRequest> for Provider {
     async fn get(&self, tx: &mut Connection, id: u64) -> Result<ProviderModel, Error> {

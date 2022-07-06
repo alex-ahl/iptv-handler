@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use sqlx::{Error, FromRow};
 
@@ -11,18 +12,37 @@ pub struct ExtInfRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-
 pub struct ExtInfModel {
-    id: u64,
-    name: String,
-    url: String,
-    m3u_id: Option<u64>,
+    pub id: u64,
+    pub name: String,
+    pub url: String,
+
+    #[serde(skip)]
+    pub m3u_id: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ExtInf {}
 
-#[async_trait::async_trait]
+impl ExtInf {
+    pub async fn get_all_by_m3u(
+        &self,
+        tx: &mut Connection,
+        m3u_id: u64,
+    ) -> Result<Vec<ExtInfModel>, Error> {
+        let res = sqlx::query_as!(
+            ExtInfModel,
+            "select id, name, url, m3u_id from extinf where m3u_id = ?",
+            m3u_id
+        )
+        .fetch_all(tx)
+        .await;
+
+        res
+    }
+}
+
+#[async_trait]
 impl CRUD<ExtInfModel, ExtInfRequest> for ExtInf {
     async fn get(&self, tx: &mut Connection, id: u64) -> Result<ExtInfModel, Error> {
         let res = sqlx::query_as!(ExtInfModel, "select * from extinf where id = ?", id)

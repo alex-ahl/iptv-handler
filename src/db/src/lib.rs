@@ -1,4 +1,5 @@
 pub mod models;
+pub mod services;
 use models::{Attribute, ExtInf, M3u, Provider};
 use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
 use sqlx::{migrate, Error, MySql, MySqlConnection, Pool};
