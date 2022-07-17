@@ -13,3 +13,5 @@ Cargo.lock
 .env
 
 !db/
+
+*.m3u
