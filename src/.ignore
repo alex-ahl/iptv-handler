@@ -1,0 +1,7 @@
+##
+# Cargo watch ignore. Should be able to ignore this via .gitignore. But it is non functional.
+##
+
+*.m3u
+sqlx-data.json
+*.unison.tmp
