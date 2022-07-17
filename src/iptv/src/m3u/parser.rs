@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::Context;
-use log::{error, info};
+use log::{debug, error, info};
 use regex::Regex;
 use url::Url;
 
@@ -24,37 +24,46 @@ pub async fn parse_m3u_url(url: &Url) -> Result<M3U, anyhow::Error> {
 
     let lines = skip_ext_m3u_line(m3u.iter());
 
-    let parsed_extinf_lines = parse_extinf_lines(lines).to_vec();
+    let parsed_extinf_lines = parse_extinf_entries(lines).to_vec();
 
     Ok(M3U {
         extinfs: parsed_extinf_lines,
     })
 }
 
-fn skip_ext_m3u_line(lines: Iter<'_, String>) -> Skip<Iter<String>> {
-    lines.skip(1)
-}
-
 fn pre_process(m3u: Lines<BufReader<&[u8]>>) -> Vec<String> {
     let array = vec!["#EXTINF", "http", "#EXTM3U"];
 
-    m3u.map(|line| line.unwrap())
+    let m3u = m3u.map(|line| line.unwrap()).collect::<Vec<String>>();
+
+    let total_lines = m3u.len();
+
+    let filtered_m3u = m3u
+        .into_iter()
         .filter(|line| {
             let is_valid_line = array
                 .iter()
                 .any(|valid_start| line.starts_with(valid_start));
 
             if !is_valid_line {
-                info!("Invalid line removed: {}", line)
+                debug!("Invalid line removed: {}", line);
             }
 
             is_valid_line
         })
-        .collect()
+        .collect::<Vec<String>>();
+
+    info!("Removed {} invalid lines", total_lines - filtered_m3u.len());
+
+    filtered_m3u
 }
 
-fn parse_extinf_lines(lines: Skip<Iter<String>>) -> Box<Vec<ExtInf>> {
-    let mut parsed_extinf_lines: Vec<ExtInf> = vec![];
+fn skip_ext_m3u_line(lines: Iter<'_, String>) -> Skip<Iter<String>> {
+    lines.skip(1)
+}
+
+fn parse_extinf_entries(lines: Skip<Iter<String>>) -> Box<Vec<ExtInf>> {
+    let mut parsed_extinf_entries: Vec<ExtInf> = vec![];
     let valid_extinf_line = Regex::new(r#"^(#\S+(?:\s+[^\s="]+=".*")+),(.*)\s*(.*)"#).unwrap();
 
     let mut lines = lines.enumerate();
@@ -70,14 +79,14 @@ fn parse_extinf_lines(lines: Skip<Iter<String>>) -> Box<Vec<ExtInf>> {
                     .map(|value| value.1.clone())
                     .unwrap_or_default();
 
-                parsed_extinf_lines.push(ExtInf {
+                parsed_extinf_entries.push(ExtInf {
                     name: parse_name(&metadata),
                     attributes,
                     url: url.clone(),
                     group_title,
                 });
 
-                info!(
+                debug!(
                     "\r\nSuccessfully parsed line channel:\r\n{}\r\n{}",
                     metadata, url
                 );
@@ -87,7 +96,9 @@ fn parse_extinf_lines(lines: Skip<Iter<String>>) -> Box<Vec<ExtInf>> {
         };
     }
 
-    Box::new(parsed_extinf_lines)
+    info!("Parsed {} extinf entries", parsed_extinf_entries.len());
+
+    Box::new(parsed_extinf_entries)
 }
 
 fn parse_name(extinf_line: &str) -> String {

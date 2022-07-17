@@ -13,9 +13,9 @@ pub struct ProviderApiModel {
     #[serde(skip)]
     db: Option<Arc<DB>>,
 
-    provider: Option<ProviderModel>,
-    m3u: Option<M3uModel>,
-    extinfs: Option<Vec<ExtInfApiModel>>,
+    pub provider: Option<ProviderModel>,
+    pub m3u: Option<M3uModel>,
+    pub extinfs: Option<Vec<ExtInfApiModel>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

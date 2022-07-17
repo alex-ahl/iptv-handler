@@ -61,6 +61,6 @@ impl Service<u64, anyhow::Error> for DB {
             }
         }
 
-        Result::Ok(1)
+        Result::Ok(provider_id)
     }
 }

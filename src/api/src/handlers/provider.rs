@@ -7,7 +7,7 @@ use iptv::m3u::{
     parser::parse_m3u_url,
     tools::{count_channels, count_groups},
 };
-use log::error;
+use log::{error, info};
 use sqlx::{MySql, Transaction};
 use url::Url;
 use warp::{
@@ -81,11 +81,14 @@ pub async fn create_provider(
             }
         };
 
+        let extinf_entries_count = count_channels(&parsed_m3u);
+        let group_count = count_groups(&parsed_m3u);
+
         let req = CreateProviderRequest {
             provider_request: ProviderRequest {
                 name: None,
                 source: url.to_string(),
-                channels: Some(count_channels(&parsed_m3u)),
+                channels: Some(extinf_entries_count),
                 groups: Some(count_groups(&parsed_m3u)),
             },
             m3u: parsed_m3u,
@@ -99,6 +102,9 @@ pub async fn create_provider(
                     .await
                     .context("Could not commit transaction")
                     .unwrap_or_default();
+
+                info!("Persisted {} extinf entries", extinf_entries_count);
+                info!("Group count equals {}", group_count);
 
                 return Ok(reply::json(&res).into_response());
             }
