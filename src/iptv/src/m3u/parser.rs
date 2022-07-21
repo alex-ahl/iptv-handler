@@ -40,7 +40,7 @@ async fn process_lines(mut lines: Lines<BufReader<&[u8]>>) -> Result<Vec<ExtInf>
 
         if !is_valid_line(&line) {
             invalid_line_count += 1;
-            debug!("Invalid line ignored\n{}", line);
+            debug!("\nInvalid line ignored\n{}", line);
             continue;
         }
 
@@ -57,7 +57,7 @@ async fn process_lines(mut lines: Lines<BufReader<&[u8]>>) -> Result<Vec<ExtInf>
                         group_title,
                     });
 
-                    info!("\r\nSuccessfully parsed extinf\r\n{}\r\n{}", line, url);
+                    debug!("\r\nSuccessfully parsed extinf\r\n{}\r\n{}", line, url);
                 } else {
                     invalid_extinf_entry_count += 1;
                     debug!("\nSkipped invalid extinf entry\n{}\n{}", line.as_str(), url);
