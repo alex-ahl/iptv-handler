@@ -6,8 +6,11 @@ syncs:
     sync_strategy: "native_osx"
     sync_args:
       - "-logfile=/tmp/unison.log"
+    monit_enable: true
+
   db_sync:
-    src: "~/docker-volumes/db"
+    src: "${DEV_DB_PATH}"
     sync_strategy: "native_osx"
     sync_args:
       - "-logfile=/tmp/unison.log"
+    monit_enable: true
