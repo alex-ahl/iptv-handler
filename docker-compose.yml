@@ -42,7 +42,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.develop
-    command: cargo watch --delay 4 -x run
+    command: cargo watch --delay 4 --why -x run
     tty: true # color terminal output
     ports:
       - "3001:3001"
