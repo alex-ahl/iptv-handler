@@ -1,5 +1,5 @@
 use anyhow::{bail, Context};
-use chrono::UTC;
+use chrono::Utc;
 use db::services::provider::{ExtInfApiModel, ProviderApiModel};
 use log::{error, info};
 use std::fmt::Write;
@@ -48,7 +48,7 @@ async fn compose_m3u(provider: ProviderApiModel, path: &String) -> Result<(), an
 
 fn build_file_path() -> String {
     let unix_timestamp = chrono::Local::now().timestamp();
-    let timestamp = UTC::now().format("%Y-%m-%d_%H-%M-%S");
+    let timestamp = Utc::now().format("%Y-%m-%d_%H-%M-%S");
     let path = format!("{unix_timestamp}_{timestamp}.m3u");
 
     path
