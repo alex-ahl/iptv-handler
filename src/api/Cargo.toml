@@ -15,6 +15,7 @@ anyhow = "1.0.53"
 futures = "0.3.21"
 log = "0.4.14"
 sqlx = { version = "0.5.6", default-features = false, features = [ "mysql" ] }
+chrono = { version = "0.4.19", features = [ "time" ] }
 rest-client = { path = "../rest-client" }
 db = { path = "../db" }
 iptv = { path = "../iptv" }

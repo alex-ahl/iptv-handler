@@ -10,7 +10,27 @@
     },
     "query": "delete from extinf where id = ?"
   },
-  "3b732c8ce59ed1351500716ec08ec5041880e9be12f76e3ac96fed12c58dbdc1": {
+  "05d0db8f04928f0f2ddd1801259f48415002a2460a65464e45da92742592c348": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "delete extinf from extinf \n            where m3u_id in (select id from m3u where provider_id = ?)"
+  },
+  "13100b619fa934760f251a1380e07d4f4c365c2ec0bc5251a4b4682d5f3df2fb": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "delete attribute from attribute\n            join extinf on attribute.extinf_id = extinf.id\n            where m3u_id in (select id from `m3u` where provider_id = ?)"
+  },
+  "159a40da52851c8100a3172abcc09940164a6704fcf3cc34a80ffc050ea43041": {
     "describe": {
       "columns": [
         {
@@ -43,7 +63,7 @@
           "type_info": {
             "char_set": 224,
             "flags": {
-              "bits": 4113
+              "bits": 4117
             },
             "max_size": 262140,
             "type": "Blob"
@@ -72,6 +92,30 @@
             "max_size": 10,
             "type": "Long"
           }
+        },
+        {
+          "name": "created_at",
+          "ordinal": 5,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 128
+            },
+            "max_size": 19,
+            "type": "Datetime"
+          }
+        },
+        {
+          "name": "modified_at",
+          "ordinal": 6,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 128
+            },
+            "max_size": 19,
+            "type": "Datetime"
+          }
         }
       ],
       "nullable": [
@@ -79,13 +123,15 @@
         true,
         false,
         true,
+        true,
+        true,
         true
       ],
       "parameters": {
-        "Right": 0
+        "Right": 1
       }
     },
-    "query": "select id, name, source, groups, channels from provider"
+    "query": "select id, name, source, groups, channels, created_at, modified_at from provider where source = ?"
   },
   "4c67eefe72732103e413ce23ad00fdaf1e2ef9b9a5067b25086a24f6f5a7f595": {
     "describe": {
@@ -289,15 +335,15 @@
     },
     "query": "select id, name, url, m3u_id from extinf where m3u_id = ?"
   },
-  "7b2652b1bdc281b0fc6e052724a81d7b22bc6d8fca059eacc2f717dac384fd9f": {
+  "7787730391bfadf1d39994b458c5962d1bcb2a88e7480af4b1279f47c31b27e7": {
     "describe": {
       "columns": [],
       "nullable": [],
       "parameters": {
-        "Right": 4
+        "Right": 6
       }
     },
-    "query": "insert into provider (name, source, groups, channels) values (?, ?, ?, ?)"
+    "query": "insert into provider (name, source, groups, channels, created_at, modified_at) values (?, ?, ?, ?, ?, ?)"
   },
   "892bdc8916807c9211289cdc32259f47375f6a3e5c945a4b5f4ae2cf0c36e3f1": {
     "describe": {
@@ -318,6 +364,109 @@
       }
     },
     "query": "delete from provider where id = ?"
+  },
+  "92e75b8bb6ede45a177dfbfa412332b53f4d4a5e2ed81398b97b6c3759861c9b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "source",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4117
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "groups",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 32
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        },
+        {
+          "name": "channels",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 32
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        },
+        {
+          "name": "created_at",
+          "ordinal": 5,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 128
+            },
+            "max_size": 19,
+            "type": "Datetime"
+          }
+        },
+        {
+          "name": "modified_at",
+          "ordinal": 6,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 128
+            },
+            "max_size": 19,
+            "type": "Datetime"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "select id, name, source, groups, channels, created_at, modified_at from provider"
   },
   "9bccae44f8607ad7a3310b9435a061ab96854deb6983f33346f17830d491b84c": {
     "describe": {
@@ -345,10 +494,36 @@
             "max_size": 20,
             "type": "LongLong"
           }
+        },
+        {
+          "name": "created_at",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 128
+            },
+            "max_size": 19,
+            "type": "Datetime"
+          }
+        },
+        {
+          "name": "modified_at",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 128
+            },
+            "max_size": 19,
+            "type": "Datetime"
+          }
         }
       ],
       "nullable": [
         false,
+        true,
+        true,
         true
       ],
       "parameters": {
@@ -356,6 +531,129 @@
       }
     },
     "query": "select * from m3u where id = ?"
+  },
+  "9c314c40c8a9c8d1c051f9367558a587386522cf352a41208832ee6f40d9dc27": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "source",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4117
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "groups",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 32
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        },
+        {
+          "name": "channels",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 32
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        },
+        {
+          "name": "created_at",
+          "ordinal": 5,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 128
+            },
+            "max_size": 19,
+            "type": "Datetime"
+          }
+        },
+        {
+          "name": "modified_at",
+          "ordinal": 6,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 128
+            },
+            "max_size": 19,
+            "type": "Datetime"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select * from provider where source = ?"
+  },
+  "b4c80b306fc230774d55a05981564a57dacf08559f79dc7985212d918643049b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "insert into m3u (provider_id, created_at, modified_at) values (?, ?, ?)"
+  },
+  "bbc03e79ad03398841b9c732d6f1298526e53ad75ce8e5b07b38216a3448542e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "delete m3u from m3u where provider_id = ?"
   },
   "cf4e9bc4882af7b10a3048c57d75713e39390b0147521dbd46246e441b676abd": {
     "describe": {
@@ -441,7 +739,7 @@
     },
     "query": "delete from attribute where id = ?"
   },
-  "ed1b856f46e0c484f634c8529f74ad112c10e726b0abe46fb9e9c613c14eecf0": {
+  "ea5dfb30817fb603665d3c394ed5030e6db2ab41ae4fdf5aea46e2708f44d130": {
     "describe": {
       "columns": [
         {
@@ -474,7 +772,7 @@
           "type_info": {
             "char_set": 224,
             "flags": {
-              "bits": 4113
+              "bits": 4117
             },
             "max_size": 262140,
             "type": "Blob"
@@ -503,6 +801,30 @@
             "max_size": 10,
             "type": "Long"
           }
+        },
+        {
+          "name": "created_at",
+          "ordinal": 5,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 128
+            },
+            "max_size": 19,
+            "type": "Datetime"
+          }
+        },
+        {
+          "name": "modified_at",
+          "ordinal": 6,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 128
+            },
+            "max_size": 19,
+            "type": "Datetime"
+          }
         }
       ],
       "nullable": [
@@ -510,22 +832,14 @@
         true,
         false,
         true,
+        true,
+        true,
         true
       ],
       "parameters": {
         "Right": 1
       }
     },
-    "query": "select id, name, source, groups, channels from provider where id = ?"
-  },
-  "fb556a90c2d87b33cb9c43691195191fa9e94ae48bc639f58c7c895504110206": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Right": 1
-      }
-    },
-    "query": "insert into m3u (provider_id) values (?)"
+    "query": "select id, name, source, groups, channels, created_at, modified_at from provider where id = ?"
   }
 }

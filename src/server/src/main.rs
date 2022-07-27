@@ -15,9 +15,9 @@ use crate::{environment::Configuration, logger::init_logger};
 #[tokio::main]
 async fn main() {
     init_logger();
-    let env: Configuration = init_env();
+    let config: Configuration = init_env();
 
-    let pool = db::connect(env.database_url).await;
+    let pool = db::connect(config.database_url.clone()).await;
     handle_migrations(&pool).await;
 
     let db = init_db(pool).await;
@@ -25,8 +25,8 @@ async fn main() {
 
     let api = init_api(db.clone()).with(warp::log("warp-server"));
 
-    if env.backend_mode_only {
-        init_app(env.m3u, db).await;
+    if config.backend_mode_only {
+        init_app(config, db).await;
     }
 
     serve(api).run(([0, 0, 0, 0], 3001)).await;

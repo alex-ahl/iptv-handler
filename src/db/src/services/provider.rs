@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::{bail, Context};
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -87,5 +88,43 @@ impl ProviderApiModel {
         } else {
             bail!("DB has not yet been initialized")
         }
+    }
+
+    pub async fn delete(self, id: u64) -> Result<(), anyhow::Error> {
+        if let Some(ref db) = self.db {
+            let mut tx = db.pool.begin().await?;
+
+            let deleted_attributes = db.attribute.delete_by_provider_id(&mut tx, id).await;
+            let deleted_extinfs = db.extinf.delete_by_provider_id(&mut tx, id).await;
+            let deleted_m3us = db.m3u.delete_by_provider_id(&mut tx, id).await;
+            let deleted_provider = db.provider.delete(&mut tx, id).await;
+
+            match deleted_attributes
+                .and_then(|aff_rows| {
+                    info!("Deleting {} attributes", aff_rows);
+                    deleted_extinfs
+                })
+                .and_then(|aff_rows| {
+                    info!("Deleting{} extinf entries", aff_rows);
+                    deleted_m3us
+                })
+                .and_then(|aff_rows| {
+                    info!("Deleting{} m3u entries", aff_rows);
+                    deleted_provider
+                }) {
+                Err(err) => {
+                    error!("Failed to delete provider\n{}\nRolling back..", err);
+
+                    tx.rollback().await?;
+                }
+                Ok(aff_rows) => {
+                    info!("Deleting {} provider", aff_rows);
+
+                    tx.commit().await?
+                }
+            }
+        }
+
+        Ok(())
     }
 }

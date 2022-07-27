@@ -12,7 +12,7 @@ use sqlx::{MySql, Transaction};
 use url::Url;
 use warp::{
     hyper::StatusCode,
-    reply::{self, Response},
+    reply::{self, json, with_status, Response},
     Reply,
 };
 
@@ -46,7 +46,10 @@ pub async fn create_provider(
 
     if let Conn::Error(e) = tx {
         error!("{}", e.root_cause());
-        return Ok(reply::with_status("FAIL", StatusCode::INTERNAL_SERVER_ERROR).into_response());
+        return Ok(
+            reply::with_status("Connection error..", StatusCode::INTERNAL_SERVER_ERROR)
+                .into_response(),
+        );
     };
 
     if let Conn::Tx(mut tx) = tx {
@@ -140,30 +143,74 @@ pub async fn get_provider(id: u64, db: Arc<DB>) -> Result<impl warp::Reply, Infa
     if let Err(err) = provider {
         error!("{}", err);
 
-        return Ok(reply::with_status(
-            reply::json(&ApiError {}),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        )
-        .into_response());
+        return Ok(
+            with_status(json(&ApiError {}), StatusCode::INTERNAL_SERVER_ERROR).into_response(),
+        );
     };
 
     Ok(reply::json(&provider.unwrap()).into_response())
 }
 
-pub async fn update_provider(
-    id: String,
-    updated_provider: ProviderRequest,
-    db: Arc<DB>,
-) -> Result<impl warp::Reply, Infallible> {
-    let _id = id;
-    let _updated_provider = updated_provider;
-    let _db = db;
-    Ok(StatusCode::NOT_FOUND)
+pub async fn get_provider_by_url(url: &str, db: Arc<DB>) -> Result<Response, Infallible> {
+    let tx = match db
+        .pool
+        .begin()
+        .await
+        .context("Could not initiate transaction")
+    {
+        Ok(tx) => Conn::Tx(tx),
+        Err(e) => Conn::Error(e),
+    };
+
+    if let Conn::Tx(mut tx) = tx {
+        let provider = match db.provider.get_by_url(&mut tx, url).await {
+            Ok(res) => res,
+            Err(err) => {
+                error!("Could not get provider with url\n{}\n{} ", url, err);
+                Default::default()
+            }
+        };
+
+        return Ok(json(&provider).into_response());
+    };
+
+    return Ok(with_status("Request failed", StatusCode::INTERNAL_SERVER_ERROR).into_response());
 }
 
-pub async fn delete_provider(id: String, db: Arc<DB>) -> Result<impl warp::Reply, Infallible> {
-    let _id = id;
-    let _db = db;
+pub async fn provider_exists(url: &str, db: Arc<DB>) -> Result<Response, Infallible> {
+    let tx = match db
+        .pool
+        .begin()
+        .await
+        .context("Could not initiate transaction")
+    {
+        Ok(tx) => Conn::Tx(tx),
+        Err(e) => Conn::Error(e),
+    };
 
-    Ok(StatusCode::NO_CONTENT)
+    if let Conn::Tx(mut tx) = tx {
+        let exists = db.provider.exists(&mut tx, url).await.unwrap_or_default();
+
+        return Ok(json(&exists).into_response());
+    };
+
+    Ok(with_status("Request failed", StatusCode::INTERNAL_SERVER_ERROR).into_response())
+}
+
+pub async fn delete_provider(id: u64, db: Arc<DB>) -> Result<StatusCode, Infallible> {
+    let mut provider = ProviderApiModel::new();
+    provider.initialize_db(db);
+
+    let res = match provider.delete(id).await {
+        Ok(_) => {
+            info!("Successfully deleted provider");
+            StatusCode::OK
+        }
+        Err(_) => {
+            error!("Failed to delete provider");
+            StatusCode::BAD_REQUEST
+        }
+    };
+
+    Ok(res)
 }

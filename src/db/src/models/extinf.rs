@@ -40,6 +40,24 @@ impl ExtInf {
 
         res
     }
+
+    pub async fn delete_by_provider_id(
+        &self,
+        tx: &mut Connection,
+        provider_id: u64,
+    ) -> Result<u64, Error> {
+        let res = sqlx::query_as!(
+            u64,
+            "delete extinf from extinf 
+            where m3u_id in (select id from m3u where provider_id = ?)",
+            provider_id
+        )
+        .execute(tx)
+        .await?
+        .rows_affected();
+
+        Ok(res)
+    }
 }
 
 #[async_trait]

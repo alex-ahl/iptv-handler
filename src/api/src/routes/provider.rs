@@ -11,7 +11,6 @@ pub fn provider_routes(
     db: Arc<DB>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     get_provider(db.clone())
-        .or(update_provider(db.clone()))
         .or(delete_provider(db.clone()))
         .or(create_provider(db.clone()))
         .or(provider_list(db.clone()))
@@ -48,22 +47,11 @@ fn get_provider(
         .and_then(handlers::provider::get_provider)
 }
 
-/// PUT /providers/{guid}
-fn update_provider(
-    db: Arc<DB>,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path!("provider" / String)
-        .and(warp::put())
-        .and(json_body())
-        .and(with_db(db))
-        .and_then(handlers::provider::update_provider)
-}
-
-/// DELETE /providers/{guid}
+/// DELETE /providers/{u64}
 fn delete_provider(
     db: Arc<DB>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path!("provider" / String)
+    warp::path!("provider" / u64)
         .and(warp::delete())
         .and(with_db(db))
         .and_then(handlers::provider::delete_provider)

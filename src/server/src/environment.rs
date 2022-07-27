@@ -14,6 +14,10 @@ pub struct Configuration {
     pub backend_mode_only: bool,
     pub m3u: Url,
     pub database_url: String,
+    #[serde(default = "env")]
+    pub env: Environment,
+    #[serde(default = "hourly_update_frequency")]
+    pub hourly_update_frequency: u16,
 }
 
 fn default_port() -> u16 {
@@ -22,4 +26,19 @@ fn default_port() -> u16 {
 
 fn default_backend_mode_only() -> bool {
     true
+}
+
+fn env() -> Environment {
+    Environment::Development
+}
+
+fn hourly_update_frequency() -> u16 {
+    12
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Environment {
+    Development,
+    Production,
 }
