@@ -18,6 +18,7 @@ pub struct Configuration {
     pub env: Environment,
     #[serde(default = "hourly_update_frequency")]
     pub hourly_update_frequency: u16,
+    pub group_excludes: Vec<String>,
 }
 
 fn default_port() -> u16 {

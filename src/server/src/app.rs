@@ -30,7 +30,7 @@ pub async fn init_app(config: Configuration, db: Arc<DB>) {
             info!("Creating new provider..");
             let provider_id = create_new_provider(&config.m3u, db.clone()).await;
 
-            create_m3u(provider_id, db.clone()).await;
+            create_m3u(provider_id, config.group_excludes, db.clone()).await;
         } else {
             info!("Provider is up to date. Skipping update...")
         }
@@ -38,11 +38,11 @@ pub async fn init_app(config: Configuration, db: Arc<DB>) {
         info!("Creating new provider..");
         let provider_id = create_new_provider(&config.m3u, db.clone()).await;
 
-        create_m3u(provider_id, db.clone()).await;
+        create_m3u(provider_id, config.group_excludes, db.clone()).await;
     }
 }
 
-async fn create_m3u(provider_id: u64, db: Arc<DB>) {
+async fn create_m3u(provider_id: u64, group_excludes: Vec<String>, db: Arc<DB>) {
     if provider_id > 0 {
         let mut provider = ProviderApiModel::new();
 
@@ -51,7 +51,7 @@ async fn create_m3u(provider_id: u64, db: Arc<DB>) {
         if let Ok(provider) = provider.get_provider(provider_id).await {
             info!("Creating new M3U..");
 
-            if let Err(err) = create_m3u_file(provider).await {
+            if let Err(err) = create_m3u_file(provider, group_excludes).await {
                 error!(".m3u file created failed with {}", err)
             }
         }
