@@ -18,6 +18,7 @@ pub struct Configuration {
     pub env: Environment,
     #[serde(default = "hourly_update_frequency")]
     pub hourly_update_frequency: u16,
+    #[serde(default = "group_excludes")]
     pub group_excludes: Vec<String>,
 }
 
@@ -35,6 +36,10 @@ fn env() -> Environment {
 
 fn hourly_update_frequency() -> u16 {
     12
+}
+
+fn group_excludes() -> Vec<String> {
+    vec![]
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
