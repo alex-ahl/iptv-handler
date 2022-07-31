@@ -11,7 +11,7 @@ pub struct RestClient {
 impl RestClient {
     pub fn new() -> Self {
         let client: Client = Config::new()
-            .set_timeout(Some(Duration::from_secs(5)))
+            .set_timeout(Some(Duration::from_secs(120)))
             .try_into()
             .expect("REST client created");
 
