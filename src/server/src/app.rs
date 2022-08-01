@@ -18,27 +18,31 @@ use crate::environment::Configuration;
 
 pub async fn init_app(config: Configuration, db: Arc<DB>) {
     if is_existing_provider(&config.m3u, db.clone()).await {
-        let provider = get_provider(&config.m3u, db.clone()).await;
-        let created_date = get_created_date(provider.created_at);
-
-        if should_update_provider(created_date, config.hourly_update_frequency) {
-            info!("Provider refresh needed, deleting..");
-            delete_provider(provider.id, db.clone())
-                .await
-                .expect("Could not delete provider");
-
-            info!("Creating new provider..");
-            let provider_id = create_new_provider(&config.m3u, db.clone()).await;
-
-            create_m3u(provider_id, config.group_excludes, db.clone()).await;
-        } else {
-            info!("Provider is up to date. Skipping update...")
-        }
+        try_provider_update(config, db.clone()).await;
     } else {
         info!("Creating new provider..");
         let provider_id = create_new_provider(&config.m3u, db.clone()).await;
 
         create_m3u(provider_id, config.group_excludes, db.clone()).await;
+    }
+}
+
+pub async fn try_provider_update(config: Configuration, db: Arc<DB>) {
+    let provider = get_provider(&config.m3u, db.clone()).await;
+    let created_date = get_created_date(provider.created_at);
+
+    if should_update_provider(created_date, config.hourly_update_frequency) {
+        info!("Provider refresh needed, deleting..");
+        delete_provider(provider.id, db.clone())
+            .await
+            .expect("Could not delete provider");
+
+        info!("Creating new provider..");
+        let provider_id = create_new_provider(&config.m3u, db.clone()).await;
+
+        create_m3u(provider_id, config.group_excludes, db.clone()).await;
+    } else {
+        info!("Provider is up to date. Skipping update...")
     }
 }
 

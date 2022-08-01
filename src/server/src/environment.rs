@@ -6,7 +6,7 @@ pub fn init_env() -> Configuration {
     from_env::<Configuration>().expect("Correct environment variables not provided")
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Configuration {
     #[serde(default = "default_port")]
     pub port: u16,
@@ -42,7 +42,7 @@ fn group_excludes() -> Vec<String> {
     vec![]
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Environment {
     Development,
