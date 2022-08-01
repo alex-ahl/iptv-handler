@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::Context;
-use log::{debug, error, info};
+use log::{debug, error, info, trace};
 use regex::Regex;
 use tokio::io::{AsyncBufReadExt, BufReader, Lines};
 use url::Url;
@@ -57,7 +57,7 @@ async fn process_lines(mut lines: Lines<BufReader<&[u8]>>) -> Result<Vec<ExtInf>
                         group_title,
                     });
 
-                    debug!("\r\nSuccessfully parsed extinf\r\n{}\r\n{}", line, url);
+                    trace!("\r\nSuccessfully parsed extinf\r\n{}\r\n{}", line, url);
                 } else {
                     invalid_extinf_entry_count += 1;
                     debug!("\nSkipped invalid extinf entry\n{}\n{}", line.as_str(), url);
