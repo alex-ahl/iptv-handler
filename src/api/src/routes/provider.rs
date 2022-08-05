@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use crate::filters::json_body;
-// use crate::DbService;
 use crate::{filters::with_db, handlers};
 use db::DB;
 use warp::Filter;

@@ -16,6 +16,8 @@ futures = "0.3.21"
 log = "0.4.14"
 sqlx = { version = "0.5.6", default-features = false, features = [ "mysql" ] }
 chrono = { version = "0.4.19", features = [ "time" ] }
+tokio = { version = "1", features = ["fs"] }
+tokio-util = { version = "0.7.3", features = ["io"] }
 rest-client = { path = "../rest-client" }
 db = { path = "../db" }
 iptv = { path = "../iptv" }

@@ -10,7 +10,7 @@ use app::init_app;
 use db::{handle_migrations, init_db};
 use environment::init_env;
 use jobs::init_jobs;
-use warp::{serve, Filter};
+use warp::serve;
 
 use crate::{environment::Configuration, logger::init_logger};
 
@@ -25,7 +25,7 @@ async fn main() {
     let db = init_db(pool).await;
     let db = Arc::new(db);
 
-    let api = init_api(db.clone()).with(warp::log("warp-server"));
+    let api = init_api(db.clone());
 
     if config.backend_mode_only {
         init_app(config.clone(), db.clone()).await;
