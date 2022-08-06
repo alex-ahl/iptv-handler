@@ -1,7 +1,7 @@
 use anyhow::{bail, Context};
 use chrono::Utc;
 use db::services::provider::{ExtInfApiModel, ProviderApiModel};
-use log::{debug, error, info};
+use log::{error, info, trace};
 use std::fmt::Write;
 use tokio::fs::File;
 use tokio::io::{AsyncWriteExt, BufWriter};
@@ -42,7 +42,7 @@ async fn compose_m3u(
             if should_exclude_extinf {
                 extinf_excludes += 1;
 
-                debug!("Excluded channel {} based on group filter", extinf.name);
+                trace!("Excluded channel {} based on group filter", extinf.name);
 
                 continue;
             }
