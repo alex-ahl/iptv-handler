@@ -1,4 +1,8 @@
-use std::{convert::Infallible, ffi::OsStr, path::PathBuf};
+use std::{
+    convert::Infallible,
+    ffi::OsStr,
+    path::{Path, PathBuf},
+};
 
 use tokio::fs::{read_dir, DirEntry, File};
 use tokio_util::io::ReaderStream;
@@ -52,4 +56,25 @@ async fn get_latest_m3u_path() -> PathBuf {
     let freshesh_file = paths.last().unwrap().to_path_buf();
 
     freshesh_file
+}
+
+pub async fn serve_file_by_file_name(file_name: String) -> Result<Response, Infallible> {
+    let path = Path::new(file_name.as_str());
+    let file = tokio::fs::File::open(path)
+        .await
+        .expect("Could not open file from disc");
+
+    let stream = ReaderStream::new(file);
+    let body = Body::wrap_stream(stream);
+
+    let response = warp::hyper::Response::builder()
+        .status(200)
+        .header(
+            "Content-Disposition",
+            "attachement; filename = \"playlist.m3u\"",
+        )
+        .body(body)
+        .unwrap_or_default();
+
+    Ok(response)
 }
