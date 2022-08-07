@@ -55,6 +55,8 @@ async fn compose_m3u(
             }
         }
 
+        writer.flush().await.context("Flushing output stream")?;
+
         let valid_extinf_entries = total_extinf_entries_length - extinf_excludes;
 
         info!("Excluded {} channels based on group", extinf_excludes);
@@ -115,7 +117,7 @@ fn compose_extinf_lines(extinf: ExtInfApiModel) -> Result<String, anyhow::Error>
         ))?;
     }
 
-    write!(line, ", {}{}{}{}", extinf.name, "\n", extinf.url, "\n")
+    write!(line, ",{}{}{}{}", extinf.name, "\n", extinf.url, "\n")
         .context(format!("writing extinf lines for channel {}", extinf.name))?;
 
     Ok(line)
