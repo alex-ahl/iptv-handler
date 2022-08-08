@@ -60,6 +60,7 @@ async fn process_lines(mut lines: Lines<BufReader<&[u8]>>) -> Result<Vec<ExtInf>
                     trace!("\r\nSuccessfully parsed extinf\r\n{}\r\n{}", line, url);
                 } else {
                     invalid_extinf_entry_count += 1;
+                    invalid_line_count += 1;
                     debug!("\nSkipped invalid extinf entry\n{}\n{}", line.as_str(), url);
                     continue;
                 };
