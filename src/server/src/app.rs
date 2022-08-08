@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use api::{
-    handlers::provider::{create_provider, delete_provider, get_provider_by_url, provider_exists},
+    handlers::{
+        m3u::m3u_file_exist,
+        provider::{create_provider, delete_provider, get_provider_by_url, provider_exists},
+    },
     models::CreateProviderRequestApiModel,
 };
 use chrono::{Duration, NaiveDateTime, Utc};
@@ -14,7 +17,7 @@ use serde_json::from_slice;
 use url::Url;
 use warp::hyper::{body, Body, Error, Response, StatusCode};
 
-use crate::environment::Configuration;
+use crate::environment::{Configuration, Environment};
 
 pub async fn init_app(config: Configuration, db: Arc<DB>) {
     if is_existing_provider(&config.m3u, db.clone()).await {
@@ -31,7 +34,9 @@ pub async fn try_provider_update(config: Configuration, db: Arc<DB>) {
     let provider = get_provider(&config.m3u, db.clone()).await;
     let created_date = get_created_date(provider.created_at);
 
-    if should_update_provider(created_date, config.hourly_update_frequency) {
+    if should_update_provider(created_date, config.hourly_update_frequency)
+        || config.env == Environment::Development
+    {
         info!("Provider refresh needed, deleting..");
         delete_provider(provider.id, db.clone())
             .await
@@ -42,7 +47,17 @@ pub async fn try_provider_update(config: Configuration, db: Arc<DB>) {
 
         create_m3u(provider_id, config.group_excludes, db.clone()).await;
     } else {
-        info!("Provider is up to date. Skipping update...")
+        info!("Provider is up to date. Skipping update...");
+
+        match m3u_file_exist().await.unwrap_or_default().status() {
+            StatusCode::OK => {
+                info!("m3u file exists..");
+            }
+            _ => {
+                info!("Creating new m3u file..");
+                create_m3u(provider.id, config.group_excludes, db.clone()).await;
+            }
+        };
     }
 }
 

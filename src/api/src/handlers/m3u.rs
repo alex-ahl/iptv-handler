@@ -53,7 +53,10 @@ async fn get_latest_m3u_path() -> PathBuf {
     let mut paths: Vec<PathBuf> = files.iter().map(|file| file.path()).collect();
     paths.sort();
 
-    let freshesh_file = paths.last().unwrap().to_path_buf();
+    let freshesh_file = match paths.last() {
+        Some(path) => path.to_path_buf(),
+        None => PathBuf::new(),
+    };
 
     freshesh_file
 }
@@ -77,4 +80,21 @@ pub async fn serve_file_by_file_name(file_name: String) -> Result<Response, Infa
         .unwrap_or_default();
 
     Ok(response)
+}
+
+pub async fn m3u_file_exist() -> Result<Response, Infallible> {
+    let path = get_latest_m3u_path().await;
+
+    let res = match File::open(path).await {
+        Ok(_) => warp::hyper::Response::builder()
+            .status(200)
+            .body(Body::default())
+            .unwrap_or_default(),
+        Err(_) => warp::hyper::Response::builder()
+            .status(403)
+            .body(Body::default())
+            .unwrap_or_default(),
+    };
+
+    Ok(res)
 }
