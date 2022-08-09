@@ -4,6 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use log::debug;
 use tokio::fs::{read_dir, DirEntry, File};
 use tokio_util::io::ReaderStream;
 
@@ -12,22 +13,31 @@ use warp::{hyper::Body, reply::Response};
 pub async fn get_latest_m3u_file() -> Result<Response, Infallible> {
     let path = get_latest_m3u_path().await;
 
-    let file = File::open(path)
-        .await
-        .expect("Could not open m3u file from disc");
+    let response = match File::open(path).await {
+        Ok(file) => {
+            let stream = ReaderStream::new(file);
 
-    let stream = ReaderStream::new(file);
+            let body = Body::wrap_stream(stream);
 
-    let body = Body::wrap_stream(stream);
+            let response = warp::hyper::Response::builder()
+                .status(200)
+                .header(
+                    "Content-Disposition",
+                    "attachement; filename = \"playlist.m3u\"",
+                )
+                .body(body)
+                .unwrap();
 
-    let response = warp::hyper::Response::builder()
-        .status(200)
-        .header(
-            "Content-Disposition",
-            "attachement; filename = \"playlist.m3u\"",
-        )
-        .body(body)
-        .unwrap_or_default();
+            response
+        }
+        Err(_) => {
+            debug!("No m3u file available");
+            warp::hyper::Response::builder()
+                .status(200)
+                .body(Body::default())
+                .unwrap()
+        }
+    };
 
     Ok(response)
 }

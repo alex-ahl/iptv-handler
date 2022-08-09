@@ -105,11 +105,11 @@ impl ProviderApiModel {
                     deleted_extinfs
                 })
                 .and_then(|aff_rows| {
-                    info!("Deleting{} extinf entries", aff_rows);
+                    info!("Deleting {} extinf entries", aff_rows);
                     deleted_m3us
                 })
                 .and_then(|aff_rows| {
-                    info!("Deleting{} m3u entries", aff_rows);
+                    info!("Deleting {} m3u entries", aff_rows);
                     deleted_provider
                 }) {
                 Err(err) => {

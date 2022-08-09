@@ -68,8 +68,6 @@ async fn create_m3u(provider_id: u64, group_excludes: Vec<String>, db: Arc<DB>) 
         provider.initialize_db(db);
 
         if let Ok(provider) = provider.get_provider(provider_id).await {
-            info!("Creating new M3U..");
-
             if let Err(err) = create_m3u_file(provider, group_excludes).await {
                 error!(".m3u file created failed with {}", err)
             }
