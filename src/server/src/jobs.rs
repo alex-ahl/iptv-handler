@@ -73,20 +73,25 @@ fn create_remove_obsolete_m3u_files_job() -> Job {
                 files.sort();
 
                 let number_of_files = files.len();
-                let number_of_files_to_delete = number_of_files - 5;
 
-                let files_to_delete = files
-                    .into_iter()
-                    .take(number_of_files - 5)
-                    .collect::<Vec<String>>();
+                if (number_of_files > 2) {
+                    let number_of_files_to_delete = number_of_files - (number_of_files - 2);
 
-                for file_name in files_to_delete {
-                    let path = Path::new(&file_name);
-                    fs::remove_file(path).await.unwrap_or_default();
-                    debug!("Removed file {}", file_name);
+                    let files_to_delete = files
+                        .into_iter()
+                        .take(number_of_files_to_delete)
+                        .collect::<Vec<String>>();
+
+                    for file_name in files_to_delete {
+                        let path = Path::new(&file_name);
+                        fs::remove_file(path).await.unwrap_or_default();
+                        debug!("Removed file {}", file_name);
+                    }
+
+                    info!("Deleted {} obsolete m3u files", number_of_files_to_delete);
+                } else {
+                    info!("No m3u files eligible for removal",);
                 }
-
-                info!("Deleted {} obsolete m3u files", number_of_files_to_delete);
             })
         })
         .expect("Could not schedule delete obsolete m3u files job");
