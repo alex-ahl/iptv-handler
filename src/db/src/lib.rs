@@ -1,18 +1,23 @@
 pub mod models;
 pub mod services;
+use log::LevelFilter;
 use models::{Attribute, ExtInf, M3u, Provider};
 use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
-use sqlx::{migrate, Error, MySql, MySqlConnection, Pool};
+use sqlx::{migrate, ConnectOptions, Error, MySql, MySqlConnection, Pool};
 use std::fmt::Debug;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 
 pub type ConnectionPool = Pool<MySql>;
 pub type Connection = MySqlConnection;
 
 pub async fn connect(database_url: String) -> ConnectionPool {
-    let connection_options =
-        MySqlConnectOptions::from_str(&database_url).expect("Parsing of connection string failed");
+    let connection_options = MySqlConnectOptions::from_str(&database_url)
+        .expect("creating connection options")
+        .log_statements(LevelFilter::Trace)
+        .log_slow_statements(LevelFilter::Debug, Duration::from_millis(1000))
+        .to_owned();
 
     MySqlPoolOptions::new()
         .connect_with(connection_options)
