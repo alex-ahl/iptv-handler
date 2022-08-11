@@ -74,7 +74,7 @@ fn create_remove_obsolete_m3u_files_job() -> Job {
 
                 let number_of_files = files.len();
 
-                if (number_of_files > 2) {
+                if number_of_files > 2 {
                     let number_of_files_to_delete = number_of_files - (number_of_files - 2);
 
                     let files_to_delete = files
