@@ -5,7 +5,7 @@ services:
     ports:
       - 3306:3306
     volumes:
-      - db_sync:/var/lib/mysql:nocopy
+      - db:/var/lib/mysql
     environment:
       MARIADB_ROOT_PASSWORD: "db"
       MARIADB_DATABASE: "iptvhandler"
@@ -26,15 +26,15 @@ services:
       context: .
       dockerfile: Dockerfile.migrations
     command: >
-      bash -c "sqlx database drop -y && 
-               sqlx database create && 
+      bash -c "sqlx database drop -y &&
+               sqlx database create &&
                sqlx migrate run &&
                cargo sqlx prepare -- --lib"
     networks:
       - iptvhandler
     env_file: ./.env
     volumes:
-      - app_sync:/usr/src/app:nocopy # docker-sync to speed up slow compiles
+      - ./src:/usr/src/app
     depends_on:
       db:
         condition: service_healthy
@@ -47,7 +47,7 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - app_sync:/usr/src/app:nocopy # docker-sync to speed up slow compiles
+      - ./src:/usr/src/app
     env_file: ./.env
     networks:
       - iptvhandler
@@ -55,10 +55,8 @@ services:
       migration:
         condition: "service_completed_successfully"
 volumes:
-  app_sync:
-    external: true
-  db_sync:
-    external: true
+  db:
+    external: false
 networks:
   iptvhandler:
     name: iptvhandler
