@@ -20,6 +20,7 @@ pub struct Configuration {
     pub hourly_update_frequency: u16,
     #[serde(default = "group_excludes")]
     pub group_excludes: Vec<String>,
+    pub proxy_domain: String,
 }
 
 fn default_port() -> u16 {

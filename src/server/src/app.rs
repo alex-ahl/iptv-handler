@@ -11,7 +11,7 @@ use chrono::{Duration, NaiveDateTime, Utc};
 use db::DB;
 use db::{models::ProviderModel, services::provider::ProviderApiModel};
 use iptv::m3u::builder::create_m3u_file;
-use log::{error, info};
+use log::{debug, error, info};
 use serde::de::DeserializeOwned;
 use serde_json::from_slice;
 use url::Url;
@@ -26,7 +26,13 @@ pub async fn init_app(config: Configuration, db: Arc<DB>) {
         info!("Creating new provider..");
         let provider_id = create_new_provider(&config.m3u, db.clone()).await;
 
-        create_m3u(provider_id, config.group_excludes, db.clone()).await;
+        create_m3u(
+            provider_id,
+            config.group_excludes,
+            config.proxy_domain,
+            db.clone(),
+        )
+        .await;
     }
 }
 
@@ -45,30 +51,59 @@ pub async fn try_provider_update(config: Configuration, db: Arc<DB>) {
         info!("Creating new provider..");
         let provider_id = create_new_provider(&config.m3u, db.clone()).await;
 
-        create_m3u(provider_id, config.group_excludes, db.clone()).await;
+        create_m3u(
+            provider_id,
+            config.group_excludes,
+            config.proxy_domain,
+            db.clone(),
+        )
+        .await;
     } else {
         info!("Provider is up to date. Skipping update...");
 
         match m3u_file_exist().await.unwrap_or_default().status() {
             StatusCode::OK => {
                 info!("m3u file exists..");
+
+                if config.env == Environment::Development {
+                    debug!("Creating file anyways since developing..");
+
+                    create_m3u(
+                        provider.id,
+                        config.group_excludes,
+                        config.proxy_domain,
+                        db.clone(),
+                    )
+                    .await;
+                }
             }
             _ => {
                 info!("Creating new m3u file..");
-                create_m3u(provider.id, config.group_excludes, db.clone()).await;
+                create_m3u(
+                    provider.id,
+                    config.group_excludes,
+                    config.proxy_domain,
+                    db.clone(),
+                )
+                .await;
             }
         };
     }
 }
 
-async fn create_m3u(provider_id: u64, group_excludes: Vec<String>, db: Arc<DB>) {
+async fn create_m3u(
+    provider_id: u64,
+    group_excludes: Vec<String>,
+    proxy_domain: String,
+    db: Arc<DB>,
+) {
     if provider_id > 0 {
         let mut provider = ProviderApiModel::new();
 
         provider.initialize_db(db);
 
         if let Ok(provider) = provider.get_provider(provider_id).await {
-            if let Err(err) = create_m3u_file(provider, group_excludes).await {
+            if let Err(err) = create_m3u_file(provider, group_excludes, proxy_domain).await {
                 error!(".m3u file created failed with {}", err)
             }
         }

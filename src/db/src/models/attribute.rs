@@ -12,7 +12,7 @@ pub struct AttributeRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct AttributeModel {
-    id: u64,
+    pub id: u64,
     pub key: String,
     pub value: String,
 

@@ -5,14 +5,16 @@ use log::{error, info, trace};
 use std::fmt::Write;
 use tokio::fs::File;
 use tokio::io::{AsyncWriteExt, BufWriter};
+use url::Url;
 
 pub async fn create_m3u_file(
     provider: ProviderApiModel,
     group_excludes: Vec<String>,
+    proxy_domain: String,
 ) -> Result<(), anyhow::Error> {
     let path = build_file_path();
 
-    if let Err(err) = compose_m3u(provider, &path, group_excludes).await {
+    if let Err(err) = compose_m3u(provider, &path, group_excludes, proxy_domain).await {
         error!("{}", err)
     }
 
@@ -23,6 +25,7 @@ async fn compose_m3u(
     provider: ProviderApiModel,
     path: &String,
     group_excludes: Vec<String>,
+    proxy_domain: String,
 ) -> Result<(), anyhow::Error> {
     let file = create_file(path).await?;
     let mut writer = BufWriter::new(file);
@@ -47,7 +50,7 @@ async fn compose_m3u(
                 continue;
             }
 
-            if let Ok(line) = compose_extinf_lines(extinf) {
+            if let Ok(line) = compose_extinf_lines(extinf, &proxy_domain) {
                 writer
                     .write(line.as_bytes())
                     .await
@@ -101,7 +104,10 @@ async fn create_file(path: &String) -> Result<File, anyhow::Error> {
     Ok(file)
 }
 
-fn compose_extinf_lines(extinf: ExtInfApiModel) -> Result<String, anyhow::Error> {
+fn compose_extinf_lines(
+    extinf: ExtInfApiModel,
+    proxy_domain: &String,
+) -> Result<String, anyhow::Error> {
     let mut line = String::new();
 
     write!(line, "#EXTINF:-1").context("writing #EXTINF:-1 line")?;
@@ -111,14 +117,48 @@ fn compose_extinf_lines(extinf: ExtInfApiModel) -> Result<String, anyhow::Error>
     }
 
     for attr in extinf.attributes.unwrap_or_default() {
-        write!(line, " {}=\"{}\"", attr.key, attr.value).context(format!(
+        let attr_value = try_parse_url_from_attr(attr.value, attr.id, proxy_domain);
+
+        write!(line, " {}=\"{}\"", attr.key, attr_value).context(format!(
             "writing attribute with key {} and value {} for extinf channel {}",
-            attr.key, attr.value, extinf.name
+            attr.key, attr_value, extinf.name
         ))?;
     }
 
-    write!(line, ",{}{}{}{}", extinf.name, "\n", extinf.url, "\n")
+    let proxified_url = proxify_url(extinf.id, &proxy_domain, UrlType::Stream);
+
+    write!(line, ",{}{}{}{}", extinf.name, "\n", proxified_url, "\n")
         .context(format!("writing extinf lines for channel {}", extinf.name))?;
 
     Ok(line)
+}
+
+fn proxify_url(id: u64, proxy_domain: &String, url_type: UrlType) -> String {
+    let url_type = match url_type {
+        UrlType::Stream => "stream".to_string(),
+        UrlType::Attribute => "attr".to_string(),
+    };
+
+    format!("http://{}/{}/{}", proxy_domain, url_type, id)
+}
+
+fn try_parse_url_from_attr(val: String, id: u64, proxy_domain: &String) -> String {
+    let url_parsed_attr = match Url::parse(&val) {
+        Ok(_) => proxify_url(id, proxy_domain, UrlType::Attribute),
+        Err(_) => Default::default(),
+    };
+
+    let attr_value = if url_parsed_attr.is_empty() {
+        val
+    } else {
+        url_parsed_attr
+    };
+
+    attr_value
+}
+
+#[derive(PartialEq)]
+enum UrlType {
+    Stream,
+    Attribute,
 }

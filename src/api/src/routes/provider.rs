@@ -36,7 +36,7 @@ fn create_provider(
         .and_then(handlers::provider::create_provider)
 }
 
-/// GET /providers/{u64}
+/// GET /provider/{u64}
 fn get_provider(
     db: Arc<DB>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {

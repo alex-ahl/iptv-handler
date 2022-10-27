@@ -1,7 +1,7 @@
-use std::convert::TryInto;
-use std::time::Duration;
-
-use surf::{Client, Config, Url};
+use futures_util::Stream;
+use log::error;
+use reqwest::{Client, ClientBuilder, Error, Response, Url};
+use warp::hyper::body::Bytes;
 
 #[derive(Clone)]
 pub struct RestClient {
@@ -10,28 +10,52 @@ pub struct RestClient {
 
 impl RestClient {
     pub fn new() -> Self {
-        let client: Client = Config::new()
-            .set_timeout(Some(Duration::from_secs(120)))
-            .try_into()
-            .expect("REST client created");
+        let client: Client = ClientBuilder::new().build().expect("REST client created");
 
         Self { client }
     }
 
-    pub async fn get_string(&self, url: &Url) -> String {
-        let res = self
-            .client
-            .get(&url)
-            .recv_string()
-            .await
-            .expect("parsing of string");
+    pub async fn get(&self, url: &Url) -> Result<Response, Error> {
+        let resp = self.client.get(url.to_string()).send().await;
 
-        res
+        resp
     }
 
-    pub async fn post(&self, url: &Url, json: &str) -> Result<(), surf::Error> {
-        self.client.post(&url).body_json(&json)?.await?;
+    pub async fn get_bytes(&self, url: &Url) -> Result<Bytes, Error> {
+        let resp = self
+            .client
+            .get(url.to_string())
+            .send()
+            .await?
+            .bytes()
+            .await?;
 
-        Ok(())
+        Ok(resp)
+    }
+
+    pub async fn get_bytes_stream(
+        &self,
+        url: &Url,
+    ) -> Result<impl Stream<Item = Result<Bytes, Error>>, anyhow::Error> {
+        let resp = self
+            .client
+            .get(url.to_string())
+            .send()
+            .await?
+            .bytes_stream();
+
+        Ok(resp)
+    }
+
+    pub async fn get_string(&self, url: &Url) -> String {
+        let res = match self.client.get(url.to_string()).send().await {
+            Ok(res) => res.text().await.unwrap_or_default(),
+            Err(err) => {
+                error!("Error getting string from request: {}", err.to_string());
+                return "".to_string();
+            }
+        };
+
+        res
     }
 }
