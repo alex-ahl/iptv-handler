@@ -1,28 +1,22 @@
-# IPTV Handler
+# Overview
 
-Filter out M3U entires from existing playlist and then generate a new M3U playlist.
-
-## Stack
-
-Written in RUST.  
-Using Docker for production and development (with docker-compose)  
-Pure SQL using SQLX as fully async driver.
+Exclude unwanted channels based on group and generate a new M3U file with proxied streams and attributes. Updates the playlist on specified hourly frequency. Streams get proxied through a webserver running on the app.
 
 ## Setup
 
 ### _Settable environment variables_
 
-```bash
-- ENV - Set environment Development of Production. Defaults to Development.
-- DATABASE_URL - Connection string to your DB
-- M3U - URL to the M3U playlist (.m3u)
-- BACKEND_MODE_ONLY - If true, initialize app with M3U playlist environment variable. Requires M3U variable to be set and a valid URL.
-- HOURLY_UPDATE_FREQUENCY - Frequency of provider playlist update. Defaults to every 12 hours.
-- GROUP_EXCLUDES - A comma separated list of groups to exclude from the final playlist. Checks if the substring provided is part of the group title. Case-insensitive.
-- PORT - Port to run on (Default 3001)
-- RUST_LOG - Log level (Example: warn,server=warn,iptv=info,api=warn,rest-client=warn)
-- DEV_DB_PATH - For development with docker-sync. A path on disc to store development database data.
-```
+| Variable                | Default     | Type    | Description                                                                            |
+| ----------------------- | ----------- | ------- | -------------------------------------------------------------------------------------- |
+| DATABASE_URL            | -           | string  | Connection string to DB                                                                |
+| M3U                     | -           | string  | URL to the M3U playlist (.m3u)                                                         |
+| BACKEND_MODE_ONLY       | false       | boolean | Initialize app with M3U playlist environment variable.                                 |
+| HOURLY_UPDATE_FREQUENCY | 12          | number  | Frequency of provider playlist update in hours                                         |
+| GROUP_EXCLUDES          | -           | string  | A comma separated list of groups to exclude from the final playlist. Case-insensitive. |
+| PROXY_DOMAIN            | -           | string  | Domain on which the app is running - to proxy m3u requests. (Example: localhost:3000)  |
+| ENV                     | Development | string  | Set environment Development or Production.                                             |
+| PORT                    | 3001        | number  | Port to run on (Default 3001)                                                          |
+| RUST_LOG                | -           | string  | Log level (warn,server=warn,iptv=info,api=warn,rest-client=warn )                      |
 
 ### _Production_
 
@@ -30,18 +24,18 @@ To build and run a production docker image.
 
 In src/server folder: `docker build -t image:tag .`
 
-`docker run --env DATABASE_URL=<URL> --env M3U=<M3U-URL> --env BACKEND_MODE_ONLY=<true/false> -n iptvhandler image:tag`
+`docker run --env DATABASE_URL=<URL> --env M3U=<M3U-URL> --env BACKEND_MODE_ONLY=<true/false> --env PROXY_DOMAIN=localhost:3000 -n iptvhandler image:tag`
+<br />
+<br />
 
 ### _Development_
 
-Change db-sync entry in docker-sync.yaml to existing folder on disc.
-
-Run `docker-sync start` and then run `docker-compose up`.
+Set required environment variables and then run `docker-compose up`.
 
 This will fire up a MariaDB container instance and create a new DB.
 Which in turn will create tables and basic data using sql files in the `server -> db -> migrations` folder.
 
-## DB
+#### **DB**
 
 SQLX requirements for static type checking:
 
