@@ -144,7 +144,13 @@ fn proxify_url(id: u64, proxy_domain: &String, url_type: UrlType) -> String {
 
 fn try_parse_url_from_attr(val: String, id: u64, proxy_domain: &String) -> String {
     let url_parsed_attr = match Url::parse(&val) {
-        Ok(_) => proxify_url(id, proxy_domain, UrlType::Attribute),
+        Ok(res) => {
+            if res.cannot_be_a_base() {
+                return val;
+            }
+
+            proxify_url(id, proxy_domain, UrlType::Attribute)
+        }
         Err(_) => Default::default(),
     };
 
