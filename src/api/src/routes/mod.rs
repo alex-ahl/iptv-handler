@@ -16,6 +16,6 @@ pub fn get_routes(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     root_routes()
         .or(provider_routes(db.clone()))
-        .or(m3u_routes())
+        .or(m3u_routes(db.clone()))
         .or(proxy_routes(db, client))
 }
