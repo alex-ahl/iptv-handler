@@ -16,7 +16,7 @@ pub struct ProviderRequest {
 
 pub struct ProviderModel {
     pub id: u64,
-    name: Option<String>,
+    pub name: Option<String>,
     pub source: String,
     groups: Option<u32>,
     channels: Option<u32>,

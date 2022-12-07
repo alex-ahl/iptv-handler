@@ -1,10 +1,17 @@
+use anyhow::Context;
 use db::Connection;
 use db::{
     models::{AttributeRequest, ExtInfRequest, M3uRequest, ProviderRequest},
     CRUD, DB,
 };
 use iptv::m3u::models::M3U;
+use sqlx::{MySql, Transaction};
 use std::fmt::Debug;
+use std::sync::Arc;
+use warp::hyper::StatusCode;
+
+use crate::handlers::provider::{create_provider, delete_provider};
+use crate::models::CreateProviderRequestApiModel;
 
 pub struct CreateProviderRequest {
     pub provider_request: ProviderRequest,
@@ -18,6 +25,8 @@ pub trait Service<TReturn, TInsert>: Send + Sync + Debug {
         tx: &mut Connection,
         create_provider_request: CreateProviderRequest,
     ) -> Result<TReturn, anyhow::Error>;
+
+    async fn refresh_providers(&self, db: Arc<DB>) -> Result<TReturn, anyhow::Error>;
 }
 
 #[async_trait::async_trait]
@@ -61,6 +70,52 @@ impl Service<u64, anyhow::Error> for DB {
             }
         }
 
-        Result::Ok(provider_id)
+        Ok(provider_id)
     }
+
+    async fn refresh_providers(&self, db: Arc<DB>) -> Result<u64, anyhow::Error> {
+        let tx = match self
+            .pool
+            .begin()
+            .await
+            .context("Could not initiate transaction")
+        {
+            Ok(tx) => Conn::Tx(tx),
+            Err(e) => Conn::Error(e),
+        };
+
+        if let Conn::Tx(mut tx) = tx {
+            let providers = self
+                .provider
+                .get_all(&mut tx)
+                .await
+                .context("Error gettings providers")?;
+
+            for provider in providers {
+                match delete_provider(provider.id, db.clone()).await {
+                    Ok(status) => {
+                        if status == StatusCode::OK {
+                            create_provider(
+                                CreateProviderRequestApiModel {
+                                    name: provider.name,
+                                    source: provider.source,
+                                },
+                                db.clone(),
+                            )
+                            .await
+                            .expect("Could not create provider");
+                        }
+                    }
+                    Err(_) => (),
+                };
+            }
+        }
+
+        Ok(StatusCode::OK.as_u16().into())
+    }
+}
+
+enum Conn<'a> {
+    Tx(Transaction<'a, MySql>),
+    Error(anyhow::Error),
 }

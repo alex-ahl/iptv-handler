@@ -214,3 +214,12 @@ pub async fn delete_provider(id: u64, db: Arc<DB>) -> Result<StatusCode, Infalli
 
     Ok(res)
 }
+
+pub async fn refresh_providers(db: Arc<DB>) -> Result<StatusCode, Infallible> {
+    let status = match db.refresh_providers(db.clone()).await {
+        Ok(_) => StatusCode::OK,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    };
+
+    Ok(status)
+}
