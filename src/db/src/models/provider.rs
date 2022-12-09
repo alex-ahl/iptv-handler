@@ -39,13 +39,17 @@ impl Provider {
         res
     }
 
-    pub async fn get_by_url(&self, tx: &mut Connection, url: &str) -> Result<ProviderModel, Error> {
+    pub async fn get_by_url(
+        &self,
+        tx: &mut Connection,
+        url: &str,
+    ) -> Result<Vec<ProviderModel>, Error> {
         let res = query_as!(
             ProviderModel,
             "select id, name, source, groups, channels, created_at, modified_at from provider where source = ?",
             url
         )
-        .fetch_one(tx)
+        .fetch_all(tx)
         .await;
 
         res

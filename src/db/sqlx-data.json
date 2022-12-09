@@ -118,15 +118,7 @@
           }
         }
       ],
-      "nullable": [
-        false,
-        true,
-        false,
-        true,
-        true,
-        true,
-        true
-      ],
+      "nullable": [false, true, false, true, true, true, true],
       "parameters": {
         "Right": 1
       }
@@ -195,12 +187,7 @@
           }
         }
       ],
-      "nullable": [
-        false,
-        false,
-        false,
-        true
-      ],
+      "nullable": [false, false, false, true],
       "parameters": {
         "Right": 1
       }
@@ -259,12 +246,7 @@
           }
         }
       ],
-      "nullable": [
-        false,
-        false,
-        false,
-        true
-      ],
+      "nullable": [false, false, false, true],
       "parameters": {
         "Right": 1
       }
@@ -323,12 +305,7 @@
           }
         }
       ],
-      "nullable": [
-        false,
-        false,
-        false,
-        true
-      ],
+      "nullable": [false, false, false, true],
       "parameters": {
         "Right": 1
       }
@@ -453,15 +430,7 @@
           }
         }
       ],
-      "nullable": [
-        false,
-        true,
-        false,
-        true,
-        true,
-        true,
-        true
-      ],
+      "nullable": [false, true, false, true, true, true, true],
       "parameters": {
         "Right": 0
       }
@@ -520,12 +489,7 @@
           }
         }
       ],
-      "nullable": [
-        false,
-        true,
-        true,
-        true
-      ],
+      "nullable": [false, true, true, true],
       "parameters": {
         "Right": 1
       }
@@ -620,15 +584,7 @@
           }
         }
       ],
-      "nullable": [
-        false,
-        true,
-        false,
-        true,
-        true,
-        true,
-        true
-      ],
+      "nullable": [false, true, false, true, true, true, true],
       "parameters": {
         "Right": 1
       }
@@ -707,12 +663,7 @@
           }
         }
       ],
-      "nullable": [
-        false,
-        false,
-        false,
-        true
-      ],
+      "nullable": [false, false, false, true],
       "parameters": {
         "Right": 1
       }
@@ -827,15 +778,7 @@
           }
         }
       ],
-      "nullable": [
-        false,
-        true,
-        false,
-        true,
-        true,
-        true,
-        true
-      ],
+      "nullable": [false, true, false, true, true, true, true],
       "parameters": {
         "Right": 1
       }

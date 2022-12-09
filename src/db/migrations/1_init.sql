@@ -5,8 +5,7 @@ CREATE TABLE IF NOT EXISTS provider (
     groups INT UNSIGNED,
     channels INT UNSIGNED,
     created_at DATETIME,
-    modified_at DATETIME,
-    CONSTRAINT source UNIQUE (source)
+    modified_at DATETIME
 );
 
 CREATE TABLE IF NOT EXISTS m3u (

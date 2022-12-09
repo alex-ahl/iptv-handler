@@ -2,6 +2,7 @@ mod app;
 pub mod environment;
 mod jobs;
 mod logger;
+mod tools;
 
 use std::sync::Arc;
 

@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
+use anyhow::bail;
 use api::{
     handlers::{
         m3u::m3u_file_exist,
-        provider::{create_provider, delete_provider, get_provider_by_url, provider_exists},
+        provider::{create_provider, get_provider_entries_by_url, provider_exists},
     },
     models::CreateProviderRequestApiModel,
 };
@@ -12,12 +13,13 @@ use db::DB;
 use db::{models::ProviderModel, services::provider::ProviderApiModel};
 use iptv::m3u::builder::create_m3u_file;
 use log::{debug, error, info};
-use serde::de::DeserializeOwned;
-use serde_json::from_slice;
 use url::Url;
-use warp::hyper::{body, Body, Error, Response, StatusCode};
+use warp::hyper::StatusCode;
 
-use crate::environment::{Configuration, Environment};
+use crate::{
+    environment::{Configuration, Environment},
+    tools::deserialize_body,
+};
 
 pub async fn init_app(config: Configuration, db: Arc<DB>) {
     if is_existing_provider(&config.m3u, db.clone()).await {
@@ -37,18 +39,16 @@ pub async fn init_app(config: Configuration, db: Arc<DB>) {
 }
 
 pub async fn try_provider_update(config: Configuration, db: Arc<DB>) {
-    let provider = get_provider(&config.m3u, db.clone()).await;
+    let provider = get_provider(&config.m3u, db.clone())
+        .await
+        .unwrap_or_default();
+
     let created_date = get_created_date(provider.created_at);
 
     if should_update_provider(created_date, config.hourly_update_frequency)
         || config.env == Environment::Development
     {
-        info!("Provider refresh needed, deleting..");
-        delete_provider(provider.id, db.clone())
-            .await
-            .expect("Could not delete provider");
-
-        info!("Creating new provider..");
+        info!("Provider is out of date, refreshing..");
         let provider_id = create_new_provider(&config.m3u, db.clone()).await;
 
         create_m3u(
@@ -137,16 +137,20 @@ async fn is_existing_provider(m3u: &Url, db: Arc<DB>) -> bool {
     exists
 }
 
-async fn get_provider(m3u: &Url, db: Arc<DB>) -> ProviderModel {
-    let response = get_provider_by_url(m3u.as_str(), db.clone())
+async fn get_provider(m3u: &Url, db: Arc<DB>) -> Result<ProviderModel, anyhow::Error> {
+    let response = get_provider_entries_by_url(m3u.as_str(), db.clone())
         .await
         .expect("Could not get provider created date");
 
-    let provider = deserialize_body::<ProviderModel>(response)
+    let provider = deserialize_body::<Vec<ProviderModel>>(response)
         .await
         .unwrap_or_default();
 
-    provider
+    if let Some(provider) = provider.first() {
+        return Ok(provider.to_owned());
+    } else {
+        bail!("No provider entry exists")
+    }
 }
 
 fn get_created_date(created_at: Option<NaiveDateTime>) -> NaiveDateTime {
@@ -157,18 +161,6 @@ fn is_success(status_code: StatusCode) -> bool {
     StatusCode::from_u16(status_code.as_u16())
         .unwrap_or_default()
         .is_success()
-}
-
-async fn deserialize_body<T>(body: Response<Body>) -> Result<T, Error>
-where
-    T: DeserializeOwned,
-{
-    let res = match body::to_bytes(body.into_body()).await {
-        Ok(res) => Ok(from_slice::<T>(&res).unwrap()),
-        Err(err) => Err(err),
-    };
-
-    res
 }
 
 fn should_update_provider(created_date: NaiveDateTime, hourly_update_frequency: u16) -> bool {

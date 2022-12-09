@@ -151,7 +151,7 @@ pub async fn get_provider(id: u64, db: Arc<DB>) -> Result<impl warp::Reply, Infa
     Ok(reply::json(&provider.unwrap()).into_response())
 }
 
-pub async fn get_provider_by_url(url: &str, db: Arc<DB>) -> Result<Response, Infallible> {
+pub async fn get_provider_entries_by_url(url: &str, db: Arc<DB>) -> Result<Response, Infallible> {
     let tx = match db
         .pool
         .begin()

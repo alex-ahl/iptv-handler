@@ -10,7 +10,7 @@ use std::fmt::Debug;
 use std::sync::Arc;
 use warp::hyper::StatusCode;
 
-use crate::handlers::provider::{create_provider, delete_provider};
+use crate::handlers::provider::create_provider;
 use crate::models::CreateProviderRequestApiModel;
 
 pub struct CreateProviderRequest {
@@ -92,22 +92,15 @@ impl Service<u64, anyhow::Error> for DB {
                 .context("Error gettings providers")?;
 
             for provider in providers {
-                match delete_provider(provider.id, db.clone()).await {
-                    Ok(status) => {
-                        if status == StatusCode::OK {
-                            create_provider(
-                                CreateProviderRequestApiModel {
-                                    name: provider.name,
-                                    source: provider.source,
-                                },
-                                db.clone(),
-                            )
-                            .await
-                            .expect("Could not create provider");
-                        }
-                    }
-                    Err(_) => (),
-                };
+                create_provider(
+                    CreateProviderRequestApiModel {
+                        name: provider.name,
+                        source: provider.source,
+                    },
+                    db.clone(),
+                )
+                .await
+                .expect("Could not create provider");
             }
         }
 
