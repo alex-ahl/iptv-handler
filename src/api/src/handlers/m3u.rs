@@ -17,7 +17,7 @@ use warp::{
     Reply,
 };
 
-use crate::models::CreateM3uApiModel;
+use crate::models::provider::CreateM3uApiModel;
 
 pub async fn get_latest_m3u_file() -> Result<Response, Infallible> {
     let path = get_latest_m3u_path().await;

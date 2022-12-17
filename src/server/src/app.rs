@@ -6,7 +6,7 @@ use api::{
         m3u::m3u_file_exist,
         provider::{create_provider, get_provider_entries_by_url, provider_exists},
     },
-    models::CreateProviderRequestApiModel,
+    models::provider::CreateProviderRequestApiModel,
 };
 use chrono::{Duration, NaiveDateTime, Utc};
 use db::DB;

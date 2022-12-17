@@ -17,7 +17,7 @@ use warp::{
 };
 
 use crate::{
-    models::{error::ApiError, CreateProviderRequestApiModel},
+    models::{error::ApiError, provider::CreateProviderRequestApiModel},
     services::provider::{CreateProviderRequest, Service},
 };
 

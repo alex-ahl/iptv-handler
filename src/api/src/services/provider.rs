@@ -11,7 +11,7 @@ use std::sync::Arc;
 use warp::hyper::StatusCode;
 
 use crate::handlers::provider::create_provider;
-use crate::models::CreateProviderRequestApiModel;
+use crate::models::provider::CreateProviderRequestApiModel;
 
 pub struct CreateProviderRequest {
     pub provider_request: ProviderRequest,

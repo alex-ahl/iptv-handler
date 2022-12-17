@@ -29,7 +29,7 @@ async fn main() {
 
     let client = Arc::new(RestClient::new());
 
-    let api = init_api(db.clone(), client);
+    let api = init_api(db.clone(), client, config.xtream_config.clone());
 
     if config.backend_mode_only {
         init_app(config.clone(), db.clone()).await;
