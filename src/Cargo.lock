@@ -39,6 +39,7 @@ dependencies = [
  "futures",
  "iptv",
  "log",
+ "reqwest",
  "rest-client",
  "serde",
  "serde_json",
