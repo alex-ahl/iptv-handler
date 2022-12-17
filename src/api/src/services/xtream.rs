@@ -192,23 +192,6 @@ impl XtreamService {
         Ok(url)
     }
 
-    fn compose_type_output_url(
-        &self,
-        xtream_config: &XtreamConfig,
-        full_path: &str,
-        query: String,
-    ) -> Result<Url, Error> {
-        let url = Url::parse(
-            format!(
-                "http://{}{}{}",
-                xtream_config.xtream_base_domain, full_path, query
-            )
-            .as_str(),
-        )?;
-
-        Ok(url)
-    }
-
     fn compose_xmltv_url(
         &self,
         xtream_config: &XtreamConfig,

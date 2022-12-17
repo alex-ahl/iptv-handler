@@ -29,7 +29,7 @@ pub fn xtream_routes(
         xtream_config.clone(),
         client.clone(),
     )
-    .or(get_type_output(xtream_config.clone(), client.clone()))
+    .or(get_type_output(xtream_config.clone()))
     .or(xmltv(xtream_config.clone(), client.clone()))
     .or(player_api_login(player_base_url, xtream_config, client))
     .recover(handle_rejection)
@@ -51,7 +51,6 @@ fn xmltv(
 
 fn get_type_output(
     xtream_config: XtreamConfig,
-    client: Arc<RestClient>,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     path!("get.php")
         .and(get())
