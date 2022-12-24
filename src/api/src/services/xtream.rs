@@ -1,5 +1,7 @@
 use anyhow::{bail, ensure, Context, Error};
+use db::{services::provider::ProviderDBService, DB};
 use rest_client::RestClient;
+use serde::de::DeserializeOwned;
 use std::sync::Arc;
 use url::Url;
 use warp::{
@@ -7,9 +9,15 @@ use warp::{
     Reply,
 };
 
+use std::str::FromStr;
+
 use crate::{
     handlers::m3u::get_latest_m3u_file,
-    models::xtream::{Action, OptionalParams, TypeOutput, XtreamConfig},
+    models::{
+        xtream::{Action, ActionTypes, Login, OptionalParams, Streams, TypeOutput, XtreamConfig},
+        ResponseData,
+    },
+    utils::compose_json_response,
 };
 
 pub struct XtreamService {
@@ -30,6 +38,17 @@ impl XtreamService {
         self.client = Some(client);
     }
 
+    pub async fn proxy_stream(&self) -> Result<Response<Body>, Error> {
+        if let (Some(_xtream_config), Some(_client)) =
+            (self.xtream_config.as_ref(), self.client.as_ref())
+        {
+            let response = warp::reply::reply().into_response();
+            Ok(response)
+        } else {
+            bail!("proxy service not fully initialized")
+        }
+    }
+
     pub async fn proxy_xmltv(&self, full_path: &str) -> Result<Response<Body>, Error> {
         if let (Some(xtream_config), Some(client)) =
             (self.xtream_config.as_ref(), self.client.as_ref())
@@ -37,7 +56,7 @@ impl XtreamService {
             let cred_query = self.compose_credentials_query_string(xtream_config);
             let url = self.compose_xmltv_url(xtream_config, full_path, cred_query)?;
 
-            let response = self.proxy_request(&url, client.clone()).await?;
+            let response = self.proxy_request_bytes(&url, client.clone()).await?;
 
             Ok(response)
         } else {
@@ -50,8 +69,8 @@ impl XtreamService {
         TypeOutput { type_, output }: TypeOutput,
     ) -> Result<Response<Body>, Error> {
         ensure!(
-            type_ == "m3u_plus" && output == "m3u8",
-            "only m3u supported"
+            type_ == "m3u_plus" && (output == "m3u8" || output == "ts" || output == "rmtp"),
+            "only m3u8, ts or rmtm supported"
         );
 
         let response = get_latest_m3u_file()
@@ -67,7 +86,18 @@ impl XtreamService {
         {
             let url = self.compose_login_url(xtream_config, full_path)?;
 
-            let response = self.proxy_request(&url, client.clone()).await?;
+            let mut res = self
+                .proxy_request_json::<Login>(&url, client.to_owned())
+                .await?;
+
+            res.data.user_info.username = xtream_config.xtream_proxied_username.clone();
+            res.data.user_info.password = xtream_config.xtream_proxied_password.clone();
+            res.data.server_info.url = xtream_config.xtream_proxied_domain.clone().unwrap();
+            res.data.server_info.port = 3001.to_string();
+            res.data.server_info.rtmp_port = 3001.to_string();
+            res.data.server_info.https_port = 3001.to_string();
+
+            let response = compose_json_response(res)?;
 
             Ok(response)
         } else {
@@ -78,20 +108,66 @@ impl XtreamService {
     pub async fn proxy_action(
         &self,
         full_path: &str,
-        action: Action,
+        Action { action }: Action,
         optional_params: OptionalParams,
+        m3u_url: Url,
+        db: Arc<DB>,
     ) -> Result<Response<Body>, Error> {
         if let (Some(xtream_config), Some(client)) =
             (self.xtream_config.as_ref(), self.client.as_ref())
         {
-            let query = self.compose_action_query_string(xtream_config, action, optional_params);
-            let url = self.compose_action_url(&xtream_config, full_path, query)?;
+            let query =
+                self.compose_action_query_string(xtream_config, action.clone(), optional_params);
 
-            let response = self.proxy_request(&url, client.clone()).await?;
+            let proxy_url = self.compose_action_url(&xtream_config, full_path, query)?;
+
+            let response = match ActionTypes::from_str(action.as_str()) {
+                Ok(ActionTypes::GetLiveStreams) => {
+                    self.proxy_get_live_streams(proxy_url, &m3u_url, db, client.clone())
+                        .await?
+                }
+                _ => self.proxy_request_bytes(&proxy_url, client.clone()).await?,
+            };
 
             Ok(response)
         } else {
             bail!("proxy service not fully initialized")
+        }
+    }
+
+    async fn proxy_get_live_streams(
+        &self,
+        proxy_url: Url,
+        m3u_url: &Url,
+        db: Arc<DB>,
+        client: Arc<RestClient>,
+    ) -> Result<Response<Body>, Error> {
+        let mut json = self
+            .proxy_request_json::<Streams>(&proxy_url, client.clone())
+            .await
+            .context("getting get_live_streams json")?;
+
+        let mut provider_db_service = ProviderDBService::new();
+        provider_db_service.initialize_db(db.clone());
+
+        match provider_db_service
+            .get_latest_provider_entry(m3u_url.as_str())
+            .await
+        {
+            Some(latest_provider_entry) => {
+                let excluded_extinfs_ids = provider_db_service
+                    .get_exclude_eligible_by_m3u_id(latest_provider_entry.id, "live", db)
+                    .await?;
+
+                json.data
+                    .retain(|stream| !excluded_extinfs_ids.contains(&stream.stream_id.to_string()));
+
+                let res = compose_json_response(json)
+                    .context("composing get_live_streams json response")?;
+
+                Ok(res)
+            }
+            None => bail!("No provider entry found"),
         }
     }
 
@@ -107,12 +183,12 @@ impl XtreamService {
     fn compose_action_query_string(
         &self,
         xtream_config: &XtreamConfig,
-        action: Action,
+        action: String,
         optional_params: OptionalParams,
     ) -> String {
         let mut query = format!(
             "?username={}&password={}&action={}",
-            xtream_config.xtream_username, xtream_config.xtream_password, action.action
+            xtream_config.xtream_username, xtream_config.xtream_password, action
         );
 
         if let Some(category_id) = optional_params.category_id {
@@ -134,7 +210,28 @@ impl XtreamService {
         query
     }
 
-    async fn proxy_request(
+    async fn proxy_request_json<T>(
+        &self,
+        url: &Url,
+        client: Arc<RestClient>,
+    ) -> Result<ResponseData<T>, Error>
+    where
+        T: DeserializeOwned + Send,
+    {
+        let res = client.get(&url).await.context("error on proxy")?;
+        let headers = res.headers().clone();
+        let status_code = res.status().clone();
+
+        let data = res.json::<T>().await.context("deserialize login body")?;
+
+        Ok(ResponseData {
+            data,
+            headers,
+            status_code,
+        })
+    }
+
+    async fn proxy_request_bytes(
         &self,
         url: &Url,
         client: Arc<RestClient>,

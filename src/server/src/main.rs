@@ -9,7 +9,7 @@ use std::sync::Arc;
 use api::init_api;
 use app::init_app;
 use db::{handle_migrations, init_db};
-use environment::init_env;
+use environment::{init_env, map_api_configuration};
 use jobs::init_jobs;
 use rest_client::RestClient;
 use warp::serve;
@@ -29,7 +29,7 @@ async fn main() {
 
     let client = Arc::new(RestClient::new());
 
-    let api = init_api(db.clone(), client, config.xtream_config.clone());
+    let api = init_api(map_api_configuration(config.clone()), db.clone(), client);
 
     if config.backend_mode_only {
         init_app(config.clone(), db.clone()).await;

@@ -1,16 +1,20 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use anyhow::{bail, Context};
+use anyhow::{bail, Context, Error};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 use crate::{
-    models::{AttributeModel, M3uModel, ProviderModel},
+    models::{
+        AttributeModel, AttributeRequest, ExtInfModel, ExtInfRequest, M3uModel, M3uRequest,
+        ProviderModel, ProviderRequest,
+    },
     CRUD, DB,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProviderApiModel {
+pub struct ProviderDBService {
     #[serde(skip)]
     db: Option<Arc<DB>>,
 
@@ -19,18 +23,43 @@ pub struct ProviderApiModel {
     pub extinfs: Option<Vec<ExtInfApiModel>>,
 }
 
+pub struct CreateProviderRequest {
+    pub provider_request: ProviderRequest,
+    pub m3u: M3U,
+    pub channel_count: u32,
+    pub group_count: u32,
+}
+
+#[derive(Debug)]
+pub struct M3U {
+    pub extinfs: Vec<ExtInf>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExtInf {
+    pub name: String,
+    pub attributes: HashMap<String, String>,
+    pub url: Url,
+    pub track_id: Option<String>,
+    pub prefix: Option<String>,
+    pub extension: Option<String>,
+    pub group_title: String,
+    pub exclude: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtInfApiModel {
     pub id: u64,
     pub name: String,
     pub url: String,
+    pub exclude: bool,
     pub m3u_id: Option<u64>,
     pub attributes: Option<Vec<AttributeModel>>,
 }
 
-impl ProviderApiModel {
+impl ProviderDBService {
     pub fn new() -> Self {
-        ProviderApiModel {
+        ProviderDBService {
             db: None,
             provider: None,
             m3u: None,
@@ -73,6 +102,7 @@ impl ProviderApiModel {
                     id: extinf.id,
                     name: extinf.name,
                     url: extinf.url,
+                    exclude: extinf.exclude.unwrap_or_default(),
                     m3u_id: extinf.m3u_id,
                     attributes: Some(attr.unwrap()),
                 });
@@ -126,5 +156,113 @@ impl ProviderApiModel {
         }
 
         Ok(())
+    }
+
+    pub async fn create_provider(&self, req: CreateProviderRequest) -> Result<u64, Error> {
+        if let Some(ref db) = self.db {
+            let mut tx = db.pool.begin().await?;
+
+            let provider_id = db.provider.insert(&mut tx, req.provider_request).await?;
+
+            let m3u_id = db.m3u.insert(&mut tx, M3uRequest { provider_id }).await?;
+
+            for extinf in req.m3u.extinfs {
+                let extinf_id = db
+                    .extinf
+                    .insert(
+                        &mut tx,
+                        ExtInfRequest {
+                            name: extinf.name,
+                            url: extinf.url.to_string(),
+                            track_id: extinf.track_id,
+                            prefix: extinf.prefix,
+                            exclude: Some(extinf.exclude),
+                            extension: extinf.extension,
+                            m3u_id,
+                        },
+                    )
+                    .await?;
+
+                for attr in extinf.attributes {
+                    db.attribute
+                        .insert(
+                            &mut tx,
+                            AttributeRequest {
+                                key: attr.0.to_string(),
+                                value: attr.1.to_string(),
+                                extinf_id,
+                            },
+                        )
+                        .await?;
+                }
+            }
+
+            tx.commit().await?;
+
+            info!("Persisted {} extinf entries", req.channel_count);
+            info!("Group count equals {}", req.group_count);
+
+            Ok(provider_id)
+        } else {
+            bail!("DB not initialized properly")
+        }
+    }
+
+    pub async fn get_provider_entries_by_url(
+        &self,
+        url: &str,
+    ) -> Result<Vec<ProviderModel>, Error> {
+        if let Some(ref db) = self.db {
+            let mut tx = db
+                .pool
+                .begin()
+                .await
+                .context("Could not initiate transaction")?;
+
+            let res = db
+                .provider
+                .get_by_url(&mut tx, url)
+                .await
+                .context("getting provider entries")?;
+
+            tx.commit().await?;
+
+            Ok(res)
+        } else {
+            bail!("Unable to initialize db");
+        }
+    }
+
+    pub async fn get_latest_provider_entry(&self, url: &str) -> Option<ProviderModel> {
+        let res = self
+            .get_provider_entries_by_url(url)
+            .await
+            .unwrap_or_default();
+
+        let latest_provider_entry = res.last()?;
+
+        Some(latest_provider_entry.to_owned())
+    }
+
+    pub async fn get_exclude_eligible_by_m3u_id(
+        &self,
+        m3u_id: u64,
+        prefix: &str,
+        db: Arc<DB>,
+    ) -> Result<Vec<String>, Error> {
+        let mut tx = db.pool.begin().await?;
+
+        let excluded_extinfs_ids = db
+            .extinf
+            .get_exclude_eligible_by_m3u_id(&mut tx, m3u_id, prefix.to_string())
+            .await
+            .context(format!("Unable to get ext entry with ID: {}", m3u_id))?
+            .into_iter()
+            .map(|extinf: ExtInfModel| extinf.track_id.unwrap_or_default())
+            .collect::<Vec<String>>();
+
+        tx.commit().await?;
+
+        Ok(excluded_extinfs_ids)
     }
 }

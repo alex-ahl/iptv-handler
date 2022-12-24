@@ -5,7 +5,7 @@ use std::{
     sync::Arc,
 };
 
-use db::{services::provider::ProviderApiModel, DB};
+use db::{services::provider::ProviderDBService, DB};
 use iptv::m3u::builder::create_m3u_file;
 use log::{debug, error};
 use tokio::fs::{read_dir, DirEntry, File};
@@ -72,12 +72,12 @@ async fn get_latest_m3u_path() -> PathBuf {
     let mut paths: Vec<PathBuf> = files.iter().map(|file| file.path()).collect();
     paths.sort();
 
-    let freshesh_file = match paths.last() {
+    let freshest_file = match paths.last() {
         Some(path) => path.to_path_buf(),
         None => PathBuf::new(),
     };
 
-    freshesh_file
+    freshest_file
 }
 
 pub async fn serve_file_by_file_name(file_name: String) -> Result<Response, Infallible> {
@@ -119,7 +119,7 @@ pub async fn m3u_file_exist() -> Result<Response, Infallible> {
 }
 
 pub async fn create_m3u(req: CreateM3uApiModel, db: Arc<DB>) -> Result<Response, Infallible> {
-    let mut provider = ProviderApiModel::new();
+    let mut provider = ProviderDBService::new();
 
     let success = reply::reply().into_response();
     let error =
@@ -128,7 +128,7 @@ pub async fn create_m3u(req: CreateM3uApiModel, db: Arc<DB>) -> Result<Response,
     provider.initialize_db(db);
 
     if let Ok(provider) = provider.get_provider(req.provider_id).await {
-        if let Err(err) = create_m3u_file(provider, req.group_excludes, req.proxy_domain).await {
+        if let Err(err) = create_m3u_file(provider, req.proxy_domain).await {
             error!(".m3u file created failed with {}", err);
             return Ok(error);
         }

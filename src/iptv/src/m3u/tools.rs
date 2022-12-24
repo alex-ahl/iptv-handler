@@ -1,7 +1,6 @@
+use db::services::provider::M3U;
 use itertools::Itertools;
 use std::convert::TryInto;
-
-use super::models::M3U;
 
 pub fn count_groups(m3u: &M3U) -> u32 {
     m3u.extinfs

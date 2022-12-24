@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS extinf (
     id BIGINT UNSIGNED PRIMARY KEY NOT NULL AUTO_INCREMENT,
     `name` TEXT NOT NULL,
     `url` TEXT NOT NULL, 
+     track_id TEXT,
+     prefix TEXT, 
+     extension TEXT,
+     exclude TINYINT,
      m3u_id BIGINT UNSIGNED, 
      FOREIGN KEY (m3u_id) REFERENCES m3u(id)
 );
@@ -33,11 +37,11 @@ CREATE TABLE IF NOT EXISTS attribute (
      FOREIGN KEY (extinf_id) REFERENCES extinf(id)
 );
 
-INSERT INTO provider VALUES (1, "temp", "http://example.com/playlist.m3u", 0, 0, NOW(), NOW());
-INSERT INTO m3u VALUES (1, 1, NOW(), NOW());
-INSERT INTO extinf VALUES (1, "Channel name 1", "https://google.se", 1);
-INSERT INTO extinf VALUES (2, "Channel name 2", "https://google.se", 1);
-INSERT INTO attribute VALUES (1, "key 1", "value 1", 1);
-INSERT INTO attribute VALUES (2, "key 2", "value 2", 1); 
+-- INSERT INTO provider VALUES (1, "temp", "http://example.com/playlist.m3u", 0, 0, NOW(), NOW());
+-- INSERT INTO m3u VALUES (1, 1, NOW(), NOW());
+-- INSERT INTO extinf VALUES (1, "Channel name 1", "https://google.se", 1);
+-- INSERT INTO extinf VALUES (2, "Channel name 2", "https://google.se", 1);
+-- INSERT INTO attribute VALUES (1, "key 1", "value 1", 1);
+-- INSERT INTO attribute VALUES (2, "key 2", "value 2", 1); 
 
 

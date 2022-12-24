@@ -20,6 +20,122 @@
     },
     "query": "delete extinf from extinf \n            where m3u_id in (select id from m3u where provider_id = ?)"
   },
+  "0ba929bdc3b3ddefbf286147f6443999ddb9503f6ef1c0c33bca0d75f41ea3d6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "url",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "track_id",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "prefix",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "extension",
+          "ordinal": 5,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "exclude: bool",
+          "ordinal": 6,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 0
+            },
+            "max_size": 4,
+            "type": "Tiny"
+          }
+        },
+        {
+          "name": "m3u_id",
+          "ordinal": 7,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "select id, name, url, track_id, prefix, extension, exclude as `exclude: bool`, m3u_id\n            from extinf \n            where exclude = 1 and prefix = ? and m3u_id = ?"
+  },
   "13100b619fa934760f251a1380e07d4f4c365c2ec0bc5251a4b4682d5f3df2fb": {
     "describe": {
       "columns": [],
@@ -63,7 +179,7 @@
           "type_info": {
             "char_set": 224,
             "flags": {
-              "bits": 4117
+              "bits": 4113
             },
             "max_size": 262140,
             "type": "Blob"
@@ -118,7 +234,15 @@
           }
         }
       ],
-      "nullable": [false, true, false, true, true, true, true],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true
+      ],
       "parameters": {
         "Right": 1
       }
@@ -187,130 +311,17 @@
           }
         }
       ],
-      "nullable": [false, false, false, true],
+      "nullable": [
+        false,
+        false,
+        false,
+        true
+      ],
       "parameters": {
         "Right": 1
       }
     },
     "query": "select * from attribute where extinf_id = ?"
-  },
-  "66de69664e2d543d14f9cb20f98e922daa2df19da25941a35fea8130ba2a5d10": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 547
-            },
-            "max_size": 20,
-            "type": "LongLong"
-          }
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": {
-            "char_set": 224,
-            "flags": {
-              "bits": 4113
-            },
-            "max_size": 262140,
-            "type": "Blob"
-          }
-        },
-        {
-          "name": "url",
-          "ordinal": 2,
-          "type_info": {
-            "char_set": 224,
-            "flags": {
-              "bits": 4113
-            },
-            "max_size": 262140,
-            "type": "Blob"
-          }
-        },
-        {
-          "name": "m3u_id",
-          "ordinal": 3,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 40
-            },
-            "max_size": 20,
-            "type": "LongLong"
-          }
-        }
-      ],
-      "nullable": [false, false, false, true],
-      "parameters": {
-        "Right": 1
-      }
-    },
-    "query": "select * from extinf where id = ?"
-  },
-  "6b8ad5643768a338a8a366b58d5f9a5ec870dfe2868fb55025cfcc6255ce3c78": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 547
-            },
-            "max_size": 20,
-            "type": "LongLong"
-          }
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": {
-            "char_set": 224,
-            "flags": {
-              "bits": 4113
-            },
-            "max_size": 262140,
-            "type": "Blob"
-          }
-        },
-        {
-          "name": "url",
-          "ordinal": 2,
-          "type_info": {
-            "char_set": 224,
-            "flags": {
-              "bits": 4113
-            },
-            "max_size": 262140,
-            "type": "Blob"
-          }
-        },
-        {
-          "name": "m3u_id",
-          "ordinal": 3,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 40
-            },
-            "max_size": 20,
-            "type": "LongLong"
-          }
-        }
-      ],
-      "nullable": [false, false, false, true],
-      "parameters": {
-        "Right": 1
-      }
-    },
-    "query": "select id, name, url, m3u_id from extinf where m3u_id = ?"
   },
   "7787730391bfadf1d39994b458c5962d1bcb2a88e7480af4b1279f47c31b27e7": {
     "describe": {
@@ -375,7 +386,7 @@
           "type_info": {
             "char_set": 224,
             "flags": {
-              "bits": 4117
+              "bits": 4113
             },
             "max_size": 262140,
             "type": "Blob"
@@ -430,7 +441,15 @@
           }
         }
       ],
-      "nullable": [false, true, false, true, true, true, true],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true
+      ],
       "parameters": {
         "Right": 0
       }
@@ -489,7 +508,12 @@
           }
         }
       ],
-      "nullable": [false, true, true, true],
+      "nullable": [
+        false,
+        true,
+        true,
+        true
+      ],
       "parameters": {
         "Right": 1
       }
@@ -529,7 +553,7 @@
           "type_info": {
             "char_set": 224,
             "flags": {
-              "bits": 4117
+              "bits": 4113
             },
             "max_size": 262140,
             "type": "Blob"
@@ -584,12 +608,30 @@
           }
         }
       ],
-      "nullable": [false, true, false, true, true, true, true],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true
+      ],
       "parameters": {
         "Right": 1
       }
     },
     "query": "select * from provider where source = ?"
+  },
+  "a2266e8a6356d00a04dd4c35ce5167640a43ccda321f800070ea61c29327995d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 7
+      }
+    },
+    "query": "insert into extinf (name, url, prefix, track_id, extension, exclude, m3u_id) values (?, ?, ?, ?, ?, ?, ?)"
   },
   "b4c80b306fc230774d55a05981564a57dacf08559f79dc7985212d918643049b": {
     "describe": {
@@ -663,22 +705,17 @@
           }
         }
       ],
-      "nullable": [false, false, false, true],
+      "nullable": [
+        false,
+        false,
+        false,
+        true
+      ],
       "parameters": {
         "Right": 1
       }
     },
     "query": "select * from attribute where id = ?"
-  },
-  "d6df7981d3dc470976ed7605b9a8588f4bc2ff89c0ba345d961e107f74eaf230": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Right": 3
-      }
-    },
-    "query": "insert into extinf (name, url, m3u_id) values (?, ?, ?)"
   },
   "e5cb9c91ce4c3a1427b2b470492f2db160cd6f6240bf040f6d4bf2a78e1fd1e4": {
     "describe": {
@@ -723,7 +760,7 @@
           "type_info": {
             "char_set": 224,
             "flags": {
-              "bits": 4117
+              "bits": 4113
             },
             "max_size": 262140,
             "type": "Blob"
@@ -778,11 +815,251 @@
           }
         }
       ],
-      "nullable": [false, true, false, true, true, true, true],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true
+      ],
       "parameters": {
         "Right": 1
       }
     },
     "query": "select id, name, source, groups, channels, created_at, modified_at from provider where id = ?"
+  },
+  "f18a62cde957d8fd6fca3edb4e792a7d839314f840a02efe674d751ce6e68769": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "url",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "track_id",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "prefix",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "extension",
+          "ordinal": 5,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "exclude: bool",
+          "ordinal": 6,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 0
+            },
+            "max_size": 4,
+            "type": "Tiny"
+          }
+        },
+        {
+          "name": "m3u_id",
+          "ordinal": 7,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select id, name, url, track_id, prefix, extension, exclude as `exclude: bool`, m3u_id from extinf where m3u_id = ?"
+  },
+  "ff278562fae5c6bc499c3137f68a02e0ae784db3e3bc1344cd9fadd6bce417ee": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "url",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "track_id",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "prefix",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "extension",
+          "ordinal": 5,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "exclude: bool",
+          "ordinal": 6,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 0
+            },
+            "max_size": 4,
+            "type": "Tiny"
+          }
+        },
+        {
+          "name": "m3u_id",
+          "ordinal": 7,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select id, name, url, track_id, prefix, extension, exclude as `exclude: bool`, m3u_id from extinf where id = ?"
   }
 }

@@ -1,10 +1,21 @@
-use api::models::xtream::XtreamConfig;
+use api::models::{xtream::XtreamConfig, ApiConfiguration};
 use envy::from_env;
 use serde::Deserialize;
 use url::Url;
 
 pub fn init_env() -> Configuration {
-    from_env::<Configuration>().expect("Correct environment variables not provided")
+    let mut env = from_env::<Configuration>().expect("Correct environment variables not provided");
+    env.xtream_config.xtream_proxied_domain = Some(env.proxy_domain.clone());
+
+    env
+}
+
+pub fn map_api_configuration(config: Configuration) -> ApiConfiguration {
+    ApiConfiguration {
+        m3u_url: config.m3u,
+        group_excludes: config.group_excludes,
+        xtream: config.xtream_config,
+    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -65,6 +76,7 @@ pub fn xtream_config() -> XtreamConfig {
         xtream_username: "".to_string(),
         xtream_password: "".to_string(),
 
+        xtream_proxied_domain: None,
         xtream_proxied_username: "".to_string(),
         xtream_proxied_password: "".to_string(),
     }

@@ -1,6 +1,6 @@
 use anyhow::{bail, Context};
 use chrono::Utc;
-use db::services::provider::{ExtInfApiModel, ProviderApiModel};
+use db::services::provider::{ExtInfApiModel, ProviderDBService};
 use log::{error, info, trace};
 use std::fmt::Write;
 use tokio::fs::File;
@@ -8,13 +8,12 @@ use tokio::io::{AsyncWriteExt, BufWriter};
 use url::Url;
 
 pub async fn create_m3u_file(
-    provider: ProviderApiModel,
-    group_excludes: Vec<String>,
+    provider_service: ProviderDBService,
     proxy_domain: String,
 ) -> Result<(), anyhow::Error> {
     let path = build_file_path();
 
-    if let Err(err) = compose_m3u(provider, &path, group_excludes, proxy_domain).await {
+    if let Err(err) = compose_m3u(provider_service, &path, proxy_domain).await {
         error!("{}", err)
     }
 
@@ -22,9 +21,8 @@ pub async fn create_m3u_file(
 }
 
 async fn compose_m3u(
-    provider: ProviderApiModel,
+    provider_service: ProviderDBService,
     path: &String,
-    group_excludes: Vec<String>,
     proxy_domain: String,
 ) -> Result<(), anyhow::Error> {
     let file = create_file(path).await?;
@@ -35,14 +33,12 @@ async fn compose_m3u(
         .await
         .context("writing #EXTM3U line to file")?;
 
-    if let Some(extinfs) = provider.extinfs {
+    if let Some(extinfs) = provider_service.extinfs {
         let total_extinf_entries_length = extinfs.len();
         let mut extinf_excludes = 0;
 
         for extinf in extinfs {
-            let should_exclude_extinf = check_group_exclusion(&extinf, &group_excludes);
-
-            if should_exclude_extinf {
+            if extinf.exclude {
                 extinf_excludes += 1;
 
                 trace!("Excluded channel {} based on group filter", extinf.name);
@@ -68,26 +64,6 @@ async fn compose_m3u(
     }
 
     Ok(())
-}
-
-fn check_group_exclusion(extinf: &ExtInfApiModel, group_excludes: &Vec<String>) -> bool {
-    let matched_group = extinf
-        .attributes
-        .as_ref()
-        .unwrap()
-        .iter()
-        .map(|attr| (&attr.key, &attr.value))
-        .find(|kvp| {
-            kvp.0 == "group-title"
-                && group_excludes
-                    .iter()
-                    .any(|exclude| kvp.1.to_ascii_lowercase().contains(&exclude.to_lowercase()))
-        });
-
-    match matched_group {
-        Some(_) => true,
-        None => false,
-    }
 }
 
 fn build_file_path() -> String {
