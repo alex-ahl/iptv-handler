@@ -26,8 +26,8 @@ pub struct Configuration {
     pub m3u: Url,
     pub database_url: String,
 
-    #[serde(default = "default_backend_mode_only")]
-    pub backend_mode_only: bool,
+    #[serde(default = "default_init_app")]
+    pub init_app: bool,
 
     #[serde(default = "env")]
     pub env: Environment,
@@ -50,7 +50,7 @@ fn default_port() -> u16 {
     3001
 }
 
-fn default_backend_mode_only() -> bool {
+fn default_init_app() -> bool {
     true
 }
 

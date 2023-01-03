@@ -31,7 +31,7 @@ async fn main() {
 
     let api = init_api(map_api_configuration(config.clone()), db.clone(), client);
 
-    if config.backend_mode_only {
+    if config.init_app {
         init_app(config.clone(), db.clone()).await;
     }
 

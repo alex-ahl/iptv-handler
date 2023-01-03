@@ -10,7 +10,7 @@ Exclude unwanted channels based on group and generate a new M3U file with proxie
 | ----------------------- | ----------- | ------- | -------------------------------------------------------------------------------------- |
 | DATABASE_URL            | -           | string  | Connection string to DB                                                                |
 | M3U                     | -           | string  | URL to the M3U playlist (.m3u)                                                         |
-| BACKEND_MODE_ONLY       | false       | boolean | Initialize app with M3U playlist environment variable.                                 |
+| INIT_APP                | true        | boolean | Initialize app with M3U playlist from environment variable.                            |
 | HOURLY_UPDATE_FREQUENCY | 12          | number  | Frequency of provider playlist update in hours                                         |
 | GROUP_EXCLUDES          | -           | string  | A comma separated list of groups to exclude from the final playlist. Case-insensitive. |
 | PROXY_DOMAIN            | -           | string  | Domain on which the app is running - to proxy m3u requests. (Example: localhost:3000)  |
@@ -24,7 +24,7 @@ To build and run a production docker image.
 
 In src/server folder: `docker build -t image:tag .`
 
-`docker run --env DATABASE_URL=<URL> --env M3U=<M3U-URL> --env BACKEND_MODE_ONLY=<true/false> --env PROXY_DOMAIN=localhost:3000 -n iptvhandler image:tag`
+`docker run --env DATABASE_URL=<URL> --env M3U=<M3U-URL> --env PROXY_DOMAIN=localhost:3000 -n iptvhandler image:tag`
 <br />
 <br />
 
