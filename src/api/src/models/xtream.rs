@@ -122,8 +122,22 @@ pub struct Stream {
     pub tv_archive_duration: Value,
 }
 
+pub type Categories = Vec<Category>;
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Category {
+    #[serde(rename = "category_id")]
+    pub category_id: String,
+    #[serde(rename = "category_name")]
+    pub category_name: String,
+    #[serde(rename = "parent_id")]
+    pub parent_id: i64,
+}
+
 #[derive(Debug, Eq, PartialEq, Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum ActionTypes {
     GetLiveStreams,
+    GetLiveCategories,
 }

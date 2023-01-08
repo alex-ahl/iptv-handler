@@ -1,7 +1,7 @@
 pub mod models;
 pub mod services;
 use log::LevelFilter;
-use models::{Attribute, ExtInf, M3u, Provider};
+use models::{Attribute, ExtInf, Group, M3u, Provider};
 use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
 use sqlx::{migrate, ConnectOptions, Error, MySql, MySqlConnection, Pool};
 use std::fmt::Debug;
@@ -47,6 +47,7 @@ pub struct DB {
     pub m3u: M3u,
     pub extinf: ExtInf,
     pub attribute: Attribute,
+    pub group: Group,
 }
 
 pub async fn init_db(pool: ConnectionPool) -> DB {
@@ -57,5 +58,6 @@ pub async fn init_db(pool: ConnectionPool) -> DB {
         attribute: Attribute {},
         m3u: M3u {},
         extinf: ExtInf {},
+        group: Group {},
     }
 }

@@ -1,5 +1,8 @@
 use anyhow::{bail, ensure, Context, Error};
-use db::{services::provider::ProviderDBService, DB};
+use db::{
+    services::{group::GroupDBService, provider::ProviderDBService},
+    DB,
+};
 use rest_client::RestClient;
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
@@ -14,7 +17,10 @@ use std::str::FromStr;
 use crate::{
     handlers::m3u::get_latest_m3u_file,
     models::{
-        xtream::{Action, ActionTypes, Login, OptionalParams, Streams, TypeOutput, XtreamConfig},
+        xtream::{
+            Action, ActionTypes, Categories, Login, OptionalParams, Streams, TypeOutput,
+            XtreamConfig,
+        },
         ResponseData,
     },
     utils::compose_json_response,
@@ -126,6 +132,10 @@ impl XtreamService {
                     self.proxy_get_live_streams(proxy_url, &m3u_url, db, client.clone())
                         .await?
                 }
+                Ok(ActionTypes::GetLiveCategories) => {
+                    self.proxy_get_live_categories(proxy_url, db, client.clone())
+                        .await?
+                }
                 _ => self.proxy_request_bytes(&proxy_url, client.clone()).await?,
             };
 
@@ -133,6 +143,37 @@ impl XtreamService {
         } else {
             bail!("proxy service not fully initialized")
         }
+    }
+
+    async fn proxy_get_live_categories(
+        &self,
+        proxy_url: Url,
+        db: Arc<DB>,
+        client: Arc<RestClient>,
+    ) -> Result<Response<Body>, Error> {
+        let mut json = self
+            .proxy_request_json::<Categories>(&proxy_url, client.clone())
+            .await
+            .context("getting get_live_categories json")?;
+
+        let mut group_service = GroupDBService::new();
+        group_service.initialize_db(db);
+
+        let groups = group_service.get_groups().await.context("getting groups")?;
+
+        let included_groups: Vec<String> = groups
+            .into_iter()
+            .filter(|group| !group.exclude)
+            .map(|group| group.name)
+            .collect();
+
+        json.data
+            .retain(|group| !included_groups.contains(&group.category_name));
+
+        let res =
+            compose_json_response(json).context("composing get_live_categories json response")?;
+
+        Ok(res)
     }
 
     async fn proxy_get_live_streams(

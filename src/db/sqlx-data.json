@@ -136,6 +136,16 @@
     },
     "query": "select id, name, url, track_id, prefix, extension, exclude as `exclude: bool`, m3u_id\n            from extinf \n            where exclude = 1 and prefix = ? and m3u_id = ?"
   },
+  "125b21e9146c1ada077187b085fb6785cf4c2511c5b939296e793d9d772359ef": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "delete `group` from `group`\n            where m3u_id in (select id from m3u where provider_id = ?)"
+  },
   "13100b619fa934760f251a1380e07d4f4c365c2ec0bc5251a4b4682d5f3df2fb": {
     "describe": {
       "columns": [],
@@ -323,6 +333,70 @@
     },
     "query": "select * from attribute where extinf_id = ?"
   },
+  "5fd2eaa2c94e92b089b3638bb6d273651234d576016c9e2116005c31f1f8614b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "exclude: bool",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4097
+            },
+            "max_size": 4,
+            "type": "Tiny"
+          }
+        },
+        {
+          "name": "m3u_id",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "select id, name, exclude as `exclude: bool`, m3u_id from `group`"
+  },
   "7787730391bfadf1d39994b458c5962d1bcb2a88e7480af4b1279f47c31b27e7": {
     "describe": {
       "columns": [],
@@ -333,6 +407,16 @@
     },
     "query": "insert into provider (name, source, groups, channels, created_at, modified_at) values (?, ?, ?, ?, ?, ?)"
   },
+  "7aca938aa0e65db998b837d02c05c29e1dd732c4ad0f54763d0b8872c7281b87": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "delete from `group` where id = ?"
+  },
   "892bdc8916807c9211289cdc32259f47375f6a3e5c945a4b5f4ae2cf0c36e3f1": {
     "describe": {
       "columns": [],
@@ -342,6 +426,70 @@
       }
     },
     "query": "delete from m3u where id = ?"
+  },
+  "8a9e1b9d1978b5ebc9525bbf032a568cc7cdd79536cac33cc4dbaec37221706b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "exclude: bool",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4097
+            },
+            "max_size": 4,
+            "type": "Tiny"
+          }
+        },
+        {
+          "name": "m3u_id",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select id, name, exclude as `exclude: bool`, m3u_id from `group` where name = ?"
   },
   "91fedeb7309460e7918eb6faaf1afc1bbdcbe66ea50dca45c27989aec8b45a2f": {
     "describe": {
@@ -455,6 +603,70 @@
       }
     },
     "query": "select id, name, source, groups, channels, created_at, modified_at from provider"
+  },
+  "99ba2d23aa12933a4fb4f1b71b9ee0c53eb3119b6d279cf8185ac6c7f9ab37ff": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "exclude: bool",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4097
+            },
+            "max_size": 4,
+            "type": "Tiny"
+          }
+        },
+        {
+          "name": "m3u_id",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select id, name, exclude as `exclude: bool`, m3u_id from `group` where id = ?"
   },
   "9bccae44f8607ad7a3310b9435a061ab96854deb6983f33346f17830d491b84c": {
     "describe": {
@@ -623,6 +835,16 @@
     },
     "query": "select * from provider where source = ?"
   },
+  "a1d643d7c022b342cc64ca672ce57822ea8dbff3539de8a5de5c638070dfbd0d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "insert into `group` (name, exclude, m3u_id) values (?, ?, ?)"
+  },
   "a2266e8a6356d00a04dd4c35ce5167640a43ccda321f800070ea61c29327995d": {
     "describe": {
       "columns": [],
@@ -717,6 +939,16 @@
     },
     "query": "select * from attribute where id = ?"
   },
+  "cfedfc78f7a1ffa9a88c4ce768ed2ef293b7ed19b072c2ce845ff630433ae288": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "truncate table `group`"
+  },
   "e5cb9c91ce4c3a1427b2b470492f2db160cd6f6240bf040f6d4bf2a78e1fd1e4": {
     "describe": {
       "columns": [],
@@ -726,6 +958,70 @@
       }
     },
     "query": "delete from attribute where id = ?"
+  },
+  "e66282f99e4f4dde48cc246b8cbbc038b8db7f4784f0b7e17ec57c3b0cee6a91": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "exclude: bool",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4097
+            },
+            "max_size": 4,
+            "type": "Tiny"
+          }
+        },
+        {
+          "name": "m3u_id",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "select id, name, exclude as `exclude: bool`, m3u_id from `group` where exclude = 1"
   },
   "ea5dfb30817fb603665d3c394ed5030e6db2ab41ae4fdf5aea46e2708f44d130": {
     "describe": {

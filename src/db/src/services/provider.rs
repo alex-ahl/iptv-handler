@@ -7,8 +7,8 @@ use url::Url;
 
 use crate::{
     models::{
-        AttributeModel, AttributeRequest, ExtInfModel, ExtInfRequest, M3uModel, M3uRequest,
-        ProviderModel, ProviderRequest,
+        AttributeModel, AttributeRequest, ExtInfModel, ExtInfRequest, GroupRequest, M3uModel,
+        M3uRequest, ProviderModel, ProviderRequest,
     },
     CRUD, DB,
 };
@@ -27,7 +27,7 @@ pub struct CreateProviderRequest {
     pub provider_request: ProviderRequest,
     pub m3u: M3U,
     pub channel_count: u32,
-    pub group_count: u32,
+    pub groups: Vec<GroupRequest>,
 }
 
 #[derive(Debug)]
@@ -127,6 +127,7 @@ impl ProviderDBService {
             let deleted_attributes = db.attribute.delete_by_provider_id(&mut tx, id).await;
             let deleted_extinfs = db.extinf.delete_by_provider_id(&mut tx, id).await;
             let deleted_m3us = db.m3u.delete_by_provider_id(&mut tx, id).await;
+            let deleted_groups = db.group.delete_by_provider_id(&mut tx, id).await;
             let deleted_provider = db.provider.delete(&mut tx, id).await;
 
             match deleted_attributes
@@ -137,6 +138,10 @@ impl ProviderDBService {
                 .and_then(|aff_rows| {
                     info!("Deleting {} extinf entries", aff_rows);
                     deleted_m3us
+                })
+                .and_then(|aff_rows| {
+                    info!("Deleting {} group entries", aff_rows);
+                    deleted_groups
                 })
                 .and_then(|aff_rows| {
                     info!("Deleting {} m3u entries", aff_rows);
@@ -197,10 +202,21 @@ impl ProviderDBService {
                 }
             }
 
+            for mut group in req.groups.to_owned() {
+                group.m3u_id = Some(m3u_id);
+                db.group.insert(&mut tx, group).await?;
+            }
+
             tx.commit().await?;
 
+            let groups = req.groups.into_iter();
+
+            let excluded_groups = groups.clone().filter(|group| group.exclude).count();
+            let included_groups = groups.filter(|group| !group.exclude).count();
+
             info!("Persisted {} extinf entries", req.channel_count);
-            info!("Group count equals {}", req.group_count);
+            info!("Included group count equals {}", included_groups);
+            info!("Excluded group count equals {}", excluded_groups);
 
             Ok(provider_id)
         } else {

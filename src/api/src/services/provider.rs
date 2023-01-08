@@ -1,7 +1,7 @@
 use anyhow::{bail, Context, Error};
 use db::{
     models::ProviderRequest,
-    services::provider::{CreateProviderRequest, ProviderDBService},
+    services::provider::{CreateProviderRequest, ProviderDBService, M3U},
     DB,
 };
 use iptv::m3u::parser::parse_m3u_url;
@@ -42,7 +42,6 @@ impl ProviderService {
                 .context("Could not parse M3U")?;
 
             let extinf_entries_count = count_channels(&parsed_m3u);
-            let group_count = count_groups(&parsed_m3u);
 
             let req = CreateProviderRequest {
                 provider_request: ProviderRequest {
@@ -51,9 +50,11 @@ impl ProviderService {
                     channels: Some(extinf_entries_count),
                     groups: Some(count_groups(&parsed_m3u)),
                 },
-                m3u: parsed_m3u,
+                m3u: M3U {
+                    extinfs: parsed_m3u.extinfs,
+                },
                 channel_count: extinf_entries_count,
-                group_count,
+                groups: parsed_m3u.groups,
             };
 
             let mut provider_db_service = ProviderDBService::new();

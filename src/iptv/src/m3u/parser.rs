@@ -1,33 +1,35 @@
 use std::{collections::HashMap, str::Split};
 
-use anyhow::Context;
-use db::services::provider::{ExtInf, M3U};
+use anyhow::{Context, Error};
+use db::{models::GroupRequest, services::provider::ExtInf};
 use log::{debug, error, info, trace};
 use regex::Regex;
 use tokio::io::{AsyncBufReadExt, BufReader, Lines};
 use url::Url;
 
+use crate::models::ParsedM3u;
+
 use super::fetcher::get_m3u;
 
-pub async fn parse_m3u_url(url: &Url, group_excludes: &Vec<String>) -> Result<M3U, anyhow::Error> {
+pub async fn parse_m3u_url(url: &Url, group_excludes: &Vec<String>) -> Result<ParsedM3u, Error> {
     let m3u = get_m3u(&url).await.context("Could not get M3U content")?;
     let m3u_reader = BufReader::new(m3u.as_bytes()).lines();
 
-    let extinfs = match process_lines(m3u_reader, group_excludes).await {
+    let m3u = match process_lines(m3u_reader, group_excludes).await {
         Ok(extinfs) => extinfs,
         Err(err) => {
             error!("{}", err);
-            vec![]
+            ParsedM3u::default()
         }
     };
 
-    Ok(M3U { extinfs })
+    Ok(m3u)
 }
 
 async fn process_lines(
     mut lines: Lines<BufReader<&[u8]>>,
     group_excludes: &Vec<String>,
-) -> Result<Vec<ExtInf>, anyhow::Error> {
+) -> Result<ParsedM3u, Error> {
     let mut total_line_count = 0;
     let mut invalid_line_count = 0;
     let mut invalid_extinf_entry_count = 0;
@@ -35,6 +37,7 @@ async fn process_lines(
     let valid_extinf_line = Regex::new(r#"^(#\S+(?:\s+[^\s="]+=".*")+),(.*)\s*(.*)"#).unwrap();
 
     let mut parsed_extinf_entries: Vec<ExtInf> = vec![];
+    let mut groups: Vec<GroupRequest> = vec![];
 
     while let Some(line) = lines.next_line().await? {
         total_line_count += 1;
@@ -63,9 +66,21 @@ async fn process_lines(
                         track_id: parse_track_id(&last_segment),
                         prefix: parse_prefix(&path_segments),
                         extension: parse_extension(last_segment),
-                        group_title,
+                        group_title: group_title.clone(),
                         exclude,
                     });
+
+                    if !groups
+                        .clone()
+                        .into_iter()
+                        .any(|group| group.name == group_title)
+                    {
+                        groups.push(GroupRequest {
+                            name: group_title,
+                            exclude,
+                            m3u_id: None,
+                        });
+                    }
 
                     trace!("\r\nSuccessfully parsed extinf\r\n{}\r\n{}", line, url);
                 } else {
@@ -84,7 +99,12 @@ async fn process_lines(
         total_line_count,
     );
 
-    Ok(parsed_extinf_entries)
+    let res = ParsedM3u {
+        extinfs: parsed_extinf_entries,
+        groups,
+    };
+
+    Ok(res)
 }
 
 fn get_path_segments(url: &Url) -> Split<char> {
