@@ -4,7 +4,7 @@ use db::{
     DB,
 };
 use rest_client::RestClient;
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Serialize};
 use std::sync::Arc;
 use url::Url;
 use warp::{
@@ -18,13 +18,15 @@ use crate::{
     handlers::m3u::get_latest_m3u_file,
     models::{
         xtream::{
-            Action, ActionTypes, Categories, Login, OptionalParams, Streams, TypeOutput,
-            XtreamConfig,
+            Action, ActionTypes, Categories, LiveStream, Login, OptionalParams, TypeOutput,
+            VodStream, XtreamConfig,
         },
         ResponseData,
     },
     utils::compose_json_response,
 };
+
+use super::HasId;
 
 pub struct XtreamService {
     xtream_config: Option<XtreamConfig>,
@@ -129,11 +131,35 @@ impl XtreamService {
 
             let response = match ActionTypes::from_str(action.as_str()) {
                 Ok(ActionTypes::GetLiveStreams) => {
-                    self.proxy_get_live_streams(proxy_url, &m3u_url, db, client.clone())
-                        .await?
+                    self.proxy_streams::<LiveStream>(
+                        proxy_url,
+                        &m3u_url,
+                        "live",
+                        db,
+                        client.clone(),
+                    )
+                    .await?
+                }
+                Ok(ActionTypes::GetVodStreams) => {
+                    self.proxy_streams::<VodStream>(
+                        proxy_url,
+                        &m3u_url,
+                        "movie",
+                        db,
+                        client.clone(),
+                    )
+                    .await?
                 }
                 Ok(ActionTypes::GetLiveCategories) => {
-                    self.proxy_get_live_categories(proxy_url, db, client.clone())
+                    self.proxy_categories(proxy_url, m3u_url, db, client.clone())
+                        .await?
+                }
+                Ok(ActionTypes::GetVodCategories) => {
+                    self.proxy_categories(proxy_url, m3u_url, db, client.clone())
+                        .await?
+                }
+                Ok(ActionTypes::GetSeriesCategories) => {
+                    self.proxy_categories(proxy_url, m3u_url, db, client.clone())
                         .await?
                 }
                 _ => self.proxy_request_bytes(&proxy_url, client.clone()).await?,
@@ -145,48 +171,67 @@ impl XtreamService {
         }
     }
 
-    async fn proxy_get_live_categories(
+    async fn proxy_categories(
         &self,
         proxy_url: Url,
+        m3u_url: Url,
         db: Arc<DB>,
         client: Arc<RestClient>,
     ) -> Result<Response<Body>, Error> {
         let mut json = self
             .proxy_request_json::<Categories>(&proxy_url, client.clone())
             .await
-            .context("getting get_live_categories json")?;
+            .context("getting categories json")?;
 
-        let mut group_service = GroupDBService::new();
-        group_service.initialize_db(db);
+        let mut provider_db_service = ProviderDBService::new();
+        provider_db_service.initialize_db(db.clone());
 
-        let groups = group_service.get_groups().await.context("getting groups")?;
+        match provider_db_service
+            .get_latest_provider_entry(m3u_url.as_str())
+            .await
+        {
+            Some(latest_provider_entry) => {
+                let mut group_service = GroupDBService::new();
+                group_service.initialize_db(db);
 
-        let included_groups: Vec<String> = groups
-            .into_iter()
-            .filter(|group| !group.exclude)
-            .map(|group| group.name)
-            .collect();
+                let groups = group_service
+                    .get_groups(latest_provider_entry.id)
+                    .await
+                    .context("getting groups")?;
 
-        json.data
-            .retain(|group| !included_groups.contains(&group.category_name));
+                let included_groups: Vec<String> = groups
+                    .into_iter()
+                    .filter(|group| !group.exclude)
+                    .map(|group| group.name)
+                    .collect();
 
-        let res =
-            compose_json_response(json).context("composing get_live_categories json response")?;
+                json.data
+                    .retain(|group| included_groups.contains(&group.category_name));
 
-        Ok(res)
+                let res = compose_json_response(json)
+                    .context("composing get categories json response")?;
+
+                Ok(res)
+            }
+            None => bail!("No provider entry found"),
+        }
     }
 
-    async fn proxy_get_live_streams(
+    async fn proxy_streams<T>(
         &self,
         proxy_url: Url,
         m3u_url: &Url,
+        prefix: &str,
         db: Arc<DB>,
         client: Arc<RestClient>,
-    ) -> Result<Response<Body>, Error> {
+    ) -> Result<Response<Body>, Error>
+    where
+        T: DeserializeOwned + Send + Serialize + Clone + HasId,
+    {
         let mut json = self
-            .proxy_request_json::<Streams>(&proxy_url, client.clone())
+            .proxy_request_json::<Vec<T>>(&proxy_url, client.clone())
             .await
-            .context("getting get_live_streams json")?;
+            .context("getting streams json")?;
 
         let mut provider_db_service = ProviderDBService::new();
         provider_db_service.initialize_db(db.clone());
@@ -197,14 +242,20 @@ impl XtreamService {
         {
             Some(latest_provider_entry) => {
                 let excluded_extinfs_ids = provider_db_service
-                    .get_exclude_eligible_by_m3u_id(latest_provider_entry.id, "live", db)
+                    .get_exclude_eligible_by_m3u_id(latest_provider_entry.id, prefix, db)
                     .await?;
 
-                json.data
-                    .retain(|stream| !excluded_extinfs_ids.contains(&stream.stream_id.to_string()));
+                let mut json_filtered = vec![];
 
-                let res = compose_json_response(json)
-                    .context("composing get_live_streams json response")?;
+                for stream in &mut json.data {
+                    if !excluded_extinfs_ids.contains(&stream.get_set_id().to_string()) {
+                        json_filtered.push(stream.to_owned())
+                    }
+                }
+
+                json.data = json_filtered;
+
+                let res = compose_json_response(json).context("composing streams json response")?;
 
                 Ok(res)
             }

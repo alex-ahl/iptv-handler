@@ -90,11 +90,12 @@ pub struct ServerInfo {
     pub process: bool,
 }
 
-pub type Streams = Vec<Stream>;
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Stream {
+pub struct LiveStream {
+    #[serde(skip)]
+    pub id: i64,
+
     pub num: i64,
     pub name: String,
     #[serde(rename = "stream_type")]
@@ -122,6 +123,38 @@ pub struct Stream {
     pub tv_archive_duration: Value,
 }
 
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VodStream {
+    #[serde(skip)]
+    pub id: i64,
+
+    pub num: i64,
+    pub name: String,
+    #[serde(rename = "stream_type")]
+    pub stream_type: String,
+    #[serde(rename = "stream_id")]
+    pub stream_id: i64,
+    #[serde(rename = "stream_icon")]
+    pub stream_icon: String,
+    pub rating: String,
+    #[serde(rename = "rating_5based")]
+    pub rating_5based: Value,
+    pub added: String,
+    #[serde(rename = "is_adult")]
+    pub is_adult: String,
+    #[serde(rename = "category_id")]
+    pub category_id: String,
+    #[serde(rename = "category_ids")]
+    pub category_ids: Vec<i64>,
+    #[serde(rename = "container_extension")]
+    pub container_extension: String,
+    #[serde(rename = "custom_sid")]
+    pub custom_sid: Option<String>,
+    #[serde(rename = "direct_source")]
+    pub direct_source: String,
+}
+
 pub type Categories = Vec<Category>;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -140,4 +173,7 @@ pub struct Category {
 pub enum ActionTypes {
     GetLiveStreams,
     GetLiveCategories,
+    GetVodStreams,
+    GetVodCategories,
+    GetSeriesCategories,
 }

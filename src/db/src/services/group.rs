@@ -20,11 +20,11 @@ impl GroupDBService {
         self.db = Some(db);
     }
 
-    pub async fn get_groups(&self) -> Result<Vec<GroupModel>, Error> {
+    pub async fn get_groups(&self, m3u_id: u64) -> Result<Vec<GroupModel>, Error> {
         if let Some(ref db) = self.db {
             let mut tx = db.pool.begin().await?;
 
-            let groups = db.group.get_all(&mut tx).await?;
+            let groups = db.group.get_all(&mut tx, m3u_id).await?;
 
             Ok(groups)
         } else {

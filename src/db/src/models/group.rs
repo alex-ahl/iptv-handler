@@ -25,10 +25,15 @@ pub struct GroupModel {
 pub struct Group {}
 
 impl Group {
-    pub async fn get_all(&self, tx: &mut Connection) -> Result<Vec<GroupModel>, Error> {
+    pub async fn get_all(
+        &self,
+        tx: &mut Connection,
+        m3u_id: u64,
+    ) -> Result<Vec<GroupModel>, Error> {
         let res = query_as!(
             GroupModel,
-            "select id, name, exclude as `exclude: bool`, m3u_id from `group`",
+            "select id, name, exclude as `exclude: bool`, m3u_id from `group` where m3u_id = ?",
+            m3u_id,
         )
         .fetch_all(tx)
         .await;
