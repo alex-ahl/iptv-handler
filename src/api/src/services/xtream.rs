@@ -3,6 +3,7 @@ use db::{
     services::{group::GroupDBService, provider::ProviderDBService},
     DB,
 };
+use log::info;
 use rest_client::RestClient;
 use serde::{de::DeserializeOwned, Serialize};
 use std::sync::Arc;
@@ -19,7 +20,7 @@ use crate::{
     models::{
         xtream::{
             Action, ActionTypes, Categories, LiveStream, Login, OptionalParams, TypeOutput,
-            VodStream, XtreamConfig,
+            VodStream, XtreamConfig, XtreamUrl,
         },
         ResponseData,
     },
@@ -64,7 +65,13 @@ impl XtreamService {
             let cred_query = self.compose_credentials_query_string(xtream_config);
             let url = self.compose_xmltv_url(xtream_config, full_path, cred_query)?;
 
-            let response = self.proxy_request_bytes(&url, client.clone()).await?;
+            let response = self
+                .proxy_request_bytes(&url.original, client.clone())
+                .await?;
+
+            let status_code = response.status();
+
+            info!("[{}] {} => {}", status_code, url.proxied, url.original);
 
             Ok(response)
         } else {
@@ -95,8 +102,10 @@ impl XtreamService {
             let url = self.compose_login_url(xtream_config, full_path)?;
 
             let mut res = self
-                .proxy_request_json::<Login>(&url, client.to_owned())
+                .proxy_request_json::<Login>(&url.original, client.to_owned())
                 .await?;
+
+            let status_code = res.status_code.clone();
 
             res.data.user_info.username = xtream_config.xtream_proxied_username.clone();
             res.data.user_info.password = xtream_config.xtream_proxied_password.clone();
@@ -106,6 +115,8 @@ impl XtreamService {
             res.data.server_info.https_port = 3001.to_string();
 
             let response = compose_json_response(res)?;
+
+            info!("[{}] {} => {}", status_code, url.proxied, url.original);
 
             Ok(response)
         } else {
@@ -127,12 +138,13 @@ impl XtreamService {
             let query =
                 self.compose_action_query_string(xtream_config, action.clone(), optional_params);
 
-            let proxy_url = self.compose_action_url(&xtream_config, full_path, query)?;
+            let urls = self.compose_action_url(&xtream_config, full_path, query)?;
+            let original_url = urls.original.clone();
 
             let response = match ActionTypes::from_str(action.as_str()) {
                 Ok(ActionTypes::GetLiveStreams) => {
                     self.proxy_streams::<LiveStream>(
-                        proxy_url,
+                        urls.original,
                         &m3u_url,
                         "live",
                         db,
@@ -142,7 +154,7 @@ impl XtreamService {
                 }
                 Ok(ActionTypes::GetVodStreams) => {
                     self.proxy_streams::<VodStream>(
-                        proxy_url,
+                        urls.original,
                         &m3u_url,
                         "movie",
                         db,
@@ -151,19 +163,27 @@ impl XtreamService {
                     .await?
                 }
                 Ok(ActionTypes::GetLiveCategories) => {
-                    self.proxy_categories(proxy_url, m3u_url, db, client.clone())
+                    self.proxy_categories(urls.original, m3u_url, db, client.clone())
                         .await?
                 }
                 Ok(ActionTypes::GetVodCategories) => {
-                    self.proxy_categories(proxy_url, m3u_url, db, client.clone())
+                    self.proxy_categories(urls.original, m3u_url, db, client.clone())
                         .await?
                 }
                 Ok(ActionTypes::GetSeriesCategories) => {
-                    self.proxy_categories(proxy_url, m3u_url, db, client.clone())
+                    self.proxy_categories(urls.original, m3u_url, db, client.clone())
                         .await?
                 }
-                _ => self.proxy_request_bytes(&proxy_url, client.clone()).await?,
+
+                _ => {
+                    self.proxy_request_bytes(&urls.original, client.clone())
+                        .await?
+                }
             };
+
+            let status_code = response.status();
+
+            info!("[{}] {} => {}", status_code, urls.proxied, original_url);
 
             Ok(response)
         } else {
@@ -314,7 +334,7 @@ impl XtreamService {
         let headers = res.headers().clone();
         let status_code = res.status().clone();
 
-        let data = res.json::<T>().await.context("deserialize login body")?;
+        let data = res.json::<T>().await.context("deserialize json body")?;
 
         Ok(ResponseData {
             data,
@@ -350,35 +370,55 @@ impl XtreamService {
         xtream_config: &XtreamConfig,
         full_path: &str,
         query: String,
-    ) -> Result<Url, Error> {
-        let url = Url::parse(
-            format!(
-                "{}{}{}{}",
-                "http://", xtream_config.xtream_base_domain, full_path, query
-            )
-            .as_str(),
+    ) -> Result<XtreamUrl, Error> {
+        let original = self.parse_url(
+            xtream_config.xtream_base_domain.clone(),
+            full_path,
+            Some(query.clone()),
         )?;
 
-        Ok(url)
+        let proxied = self.parse_url(
+            xtream_config
+                .xtream_proxied_domain
+                .clone()
+                .unwrap_or_default(),
+            full_path,
+            Some(query),
+        )?;
+
+        let urls = XtreamUrl { original, proxied };
+
+        Ok(urls)
     }
 
     fn compose_login_url(
         &self,
         xtream_config: &XtreamConfig,
         full_path: &str,
-    ) -> Result<Url, Error> {
-        let url = Url::parse(
-            format!(
-                "http://{}{}?username={}&password={}",
-                xtream_config.xtream_base_domain,
-                full_path,
-                xtream_config.xtream_username,
-                xtream_config.xtream_password
-            )
-            .as_str(),
+    ) -> Result<XtreamUrl, Error> {
+        let query = Some(format!(
+            "?username={}&password={}",
+            xtream_config.xtream_username, xtream_config.xtream_password
+        ));
+
+        let original = self.parse_url(
+            xtream_config.xtream_base_domain.clone(),
+            full_path,
+            query.clone(),
         )?;
 
-        Ok(url)
+        let proxied = self.parse_url(
+            xtream_config
+                .xtream_proxied_domain
+                .clone()
+                .unwrap_or_default(),
+            full_path,
+            query,
+        )?;
+
+        let urls = XtreamUrl { original, proxied };
+
+        Ok(urls)
     }
 
     fn compose_xmltv_url(
@@ -386,14 +426,39 @@ impl XtreamService {
         xtream_config: &XtreamConfig,
         full_path: &str,
         query: String,
-    ) -> Result<Url, Error> {
-        let url = Url::parse(
-            format!(
-                "http://{}{}{}",
-                xtream_config.xtream_base_domain, full_path, query
-            )
-            .as_str(),
+    ) -> Result<XtreamUrl, Error> {
+        let original = self.parse_url(
+            xtream_config.xtream_base_domain.clone(),
+            full_path,
+            Some(query.clone()),
         )?;
+
+        let proxied = self.parse_url(
+            xtream_config
+                .xtream_proxied_domain
+                .clone()
+                .unwrap_or_default(),
+            full_path,
+            Some(query),
+        )?;
+
+        let urls = XtreamUrl { original, proxied };
+
+        Ok(urls)
+    }
+
+    fn parse_url(
+        &self,
+        domain: String,
+        full_path: &str,
+        query: Option<String>,
+    ) -> Result<Url, Error> {
+        let url = match query {
+            Some(query) => {
+                Url::parse(format!("{}{}{}{}", "http://", domain, full_path, query).as_str())?
+            }
+            None => Url::parse(format!("{}{}{}", "http://", domain, full_path).as_str())?,
+        };
 
         Ok(url)
     }

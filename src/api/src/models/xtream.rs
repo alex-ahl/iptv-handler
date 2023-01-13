@@ -1,3 +1,4 @@
+use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use strum::{Display, EnumString};
@@ -176,4 +177,11 @@ pub enum ActionTypes {
     GetVodStreams,
     GetVodCategories,
     GetSeriesCategories,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+
+pub struct XtreamUrl {
+    pub original: Url,
+    pub proxied: Url,
 }
