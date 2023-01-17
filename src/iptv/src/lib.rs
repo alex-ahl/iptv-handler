@@ -1,2 +1,2 @@
 pub mod m3u;
-mod models;
+pub mod models;

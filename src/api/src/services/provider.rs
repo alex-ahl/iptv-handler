@@ -7,39 +7,50 @@ use db::{
 use iptv::m3u::parser::parse_m3u_url;
 use iptv::m3u::tools::{count_channels, count_groups};
 use reqwest::Url;
+use rest_client::RestClient;
 use std::sync::Arc;
 use warp::hyper::{Body, Response, StatusCode};
 use warp::reply::{json, with_status};
 use warp::Reply;
 
 use crate::handlers::provider::create_provider;
-use crate::models::provider::CreateProviderRequestApiModel;
+use crate::models::{provider::CreateProviderRequestApiModel, ApiConfiguration};
 
 pub struct ProviderService {
     db: Option<Arc<DB>>,
+    client: Option<Arc<RestClient>>,
 }
 
 impl ProviderService {
     pub fn new() -> Self {
-        ProviderService { db: None }
+        ProviderService {
+            db: None,
+            client: None,
+        }
     }
 
-    pub fn initialize(&mut self, db: Arc<DB>) {
+    pub fn initialize(&mut self, db: Arc<DB>, client: Arc<RestClient>) {
         self.db = Some(db);
+        self.client = Some(client);
     }
 
     pub async fn create_provider(
         &self,
-        group_excludes: Vec<String>,
         provider_source: &String,
+        config: ApiConfiguration,
     ) -> Result<Response<Body>, Error> {
-        if let Some(ref db) = self.db {
+        if let (Some(db), Some(client)) = (self.db.as_ref(), self.client.as_ref()) {
             let url =
                 Url::parse(provider_source).context("Could not parse M3U URL, not a valid URL")?;
 
-            let parsed_m3u = parse_m3u_url(&url, &group_excludes)
-                .await
-                .context("Could not parse M3U")?;
+            let parsed_m3u = parse_m3u_url(
+                &url,
+                &config.group_excludes,
+                config.xtream.into(),
+                client.clone(),
+            )
+            .await
+            .context("Could not parse M3U")?;
 
             let extinf_entries_count = count_channels(&parsed_m3u);
 
@@ -68,11 +79,8 @@ impl ProviderService {
         }
     }
 
-    pub async fn refresh_providers(
-        &self,
-        group_excludes: Vec<String>,
-    ) -> Result<u64, anyhow::Error> {
-        if let Some(ref db) = self.db {
+    pub async fn refresh_providers(&self, config: ApiConfiguration) -> Result<u64, anyhow::Error> {
+        if let (Some(db), Some(client)) = (self.db.as_ref(), self.client.as_ref()) {
             {
                 let mut tx = db
                     .pool
@@ -92,8 +100,9 @@ impl ProviderService {
                             name: provider.name,
                             source: provider.source,
                         },
-                        group_excludes.to_owned(),
+                        config.clone(),
                         db.clone(),
+                        client.clone(),
                     )
                     .await
                     .expect("Could not create provider");

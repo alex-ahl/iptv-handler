@@ -13,5 +13,7 @@ anyhow = "1.0.53"
 itertools = "0.10.3"
 chrono = { version = "0.4.19", features = ["serde"] }
 tokio = { version = "1", features = ["fs"] }
+serde = { version = "1.0.132", features = ["derive"] }
+serde_json = "1.0.73"
 rest-client = { path = "../rest-client" }
 db = { path = "../db" }

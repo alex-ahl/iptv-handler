@@ -41,6 +41,17 @@ pub struct XtreamConfig {
     pub xtream_proxied_password: String,
 }
 
+impl From<XtreamConfig> for iptv::models::XtreamConfig {
+    fn from(config: XtreamConfig) -> Self {
+        iptv::models::XtreamConfig {
+            enabled: true,
+            base_domain: config.xtream_base_domain,
+            username: config.xtream_username,
+            password: config.xtream_password,
+        }
+    }
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Login {
@@ -156,6 +167,36 @@ pub struct VodStream {
     pub direct_source: String,
 }
 
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Series {
+    pub num: i64,
+    pub name: String,
+    #[serde(rename = "series_id")]
+    pub series_id: i64,
+    pub cover: String,
+    pub plot: String,
+    pub cast: String,
+    pub director: String,
+    pub genre: String,
+    pub release_date: String,
+    #[serde(rename = "last_modified")]
+    pub last_modified: String,
+    pub rating: String,
+    #[serde(rename = "rating_5based")]
+    pub rating_5based: String,
+    #[serde(rename = "backdrop_path")]
+    pub backdrop_path: Value,
+    #[serde(rename = "youtube_trailer")]
+    pub youtube_trailer: String,
+    #[serde(rename = "episode_run_time")]
+    pub episode_run_time: String,
+    #[serde(rename = "category_id")]
+    pub category_id: String,
+    #[serde(rename = "category_ids")]
+    pub category_ids: Vec<i64>,
+}
+
 pub type Categories = Vec<Category>;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -176,6 +217,7 @@ pub enum ActionTypes {
     GetLiveCategories,
     GetVodStreams,
     GetVodCategories,
+    GetSeries,
     GetSeriesCategories,
 }
 

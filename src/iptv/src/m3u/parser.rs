@@ -1,21 +1,30 @@
-use std::{collections::HashMap, str::Split};
+use std::{collections::HashMap, str::Split, sync::Arc};
 
 use anyhow::{Context, Error};
 use db::{models::GroupRequest, services::provider::ExtInf};
 use log::{debug, error, info, trace};
 use regex::Regex;
-use tokio::io::{AsyncBufReadExt, BufReader, Lines};
+use rest_client::RestClient;
+use tokio::{
+    io::{AsyncBufReadExt, BufReader, Lines},
+    try_join,
+};
 use url::Url;
 
-use crate::models::ParsedM3u;
+use crate::models::{ParsedM3u, XtreamCategory, XtreamConfig};
 
 use super::fetcher::get_m3u;
 
-pub async fn parse_m3u_url(url: &Url, group_excludes: &Vec<String>) -> Result<ParsedM3u, Error> {
+pub async fn parse_m3u_url(
+    url: &Url,
+    group_excludes: &Vec<String>,
+    xtream_config: XtreamConfig,
+    client: Arc<RestClient>,
+) -> Result<ParsedM3u, Error> {
     let m3u = get_m3u(&url).await.context("Could not get M3U content")?;
     let m3u_reader = BufReader::new(m3u.as_bytes()).lines();
 
-    let m3u = match process_lines(m3u_reader, group_excludes).await {
+    let m3u = match process_lines(m3u_reader, group_excludes, xtream_config, client).await {
         Ok(extinfs) => extinfs,
         Err(err) => {
             error!("{}", err);
@@ -29,6 +38,8 @@ pub async fn parse_m3u_url(url: &Url, group_excludes: &Vec<String>) -> Result<Pa
 async fn process_lines(
     mut lines: Lines<BufReader<&[u8]>>,
     group_excludes: &Vec<String>,
+    xtream_config: XtreamConfig,
+    client: Arc<RestClient>,
 ) -> Result<ParsedM3u, Error> {
     let mut total_line_count = 0;
     let mut invalid_line_count = 0;
@@ -70,14 +81,11 @@ async fn process_lines(
                         exclude,
                     });
 
-                    if !groups
-                        .clone()
-                        .into_iter()
-                        .any(|group| group.name == group_title)
-                    {
+                    if !is_duplicate_group(&groups, group_title.clone()) {
                         groups.push(GroupRequest {
                             name: group_title,
                             exclude,
+                            xtream_cat_id: None,
                             m3u_id: None,
                         });
                     }
@@ -93,6 +101,10 @@ async fn process_lines(
         }
     }
 
+    if xtream_config.enabled {
+        groups = try_set_category_ids(groups, xtream_config, client).await?;
+    }
+
     log_lines_info(
         invalid_extinf_entry_count,
         invalid_line_count,
@@ -105,6 +117,39 @@ async fn process_lines(
     };
 
     Ok(res)
+}
+
+async fn try_set_category_ids(
+    mut groups: Vec<GroupRequest>,
+    xtream_config: XtreamConfig,
+    client: Arc<RestClient>,
+) -> Result<Vec<GroupRequest>, Error> {
+    let xtream_categories = try_get_xtream_categories(&xtream_config, &client).await?;
+
+    for group in &mut groups {
+        let cat = xtream_categories
+            .clone()
+            .into_iter()
+            .find(|cat| cat.category_name == group.name);
+
+        if let Some(cat) = cat {
+            group.xtream_cat_id = Some(cat.category_id.parse().unwrap_or_default());
+        }
+    }
+
+    Ok(groups)
+}
+
+fn is_duplicate_group(groups: &Vec<GroupRequest>, group_title: String) -> bool {
+    if groups
+        .clone()
+        .into_iter()
+        .any(|group| group.name == group_title)
+    {
+        true
+    } else {
+        false
+    }
 }
 
 fn get_path_segments(url: &Url) -> Split<char> {
@@ -223,4 +268,44 @@ fn log_lines_info(invalid_extinf_entry_count: i32, invalid_line_count: i32, tota
         "Ignored {} invalid lines out of a total of {} lines",
         invalid_line_count, total_line_count
     );
+}
+
+async fn try_get_xtream_categories(
+    xtream_config: &XtreamConfig,
+    client: &Arc<RestClient>,
+) -> Result<Vec<XtreamCategory>, Error> {
+    let live_categories = get_xtream_category("get_live_categories", &xtream_config, &client);
+    let vod_categories = get_xtream_category("get_vod_categories", &xtream_config, &client);
+    let series_categories = get_xtream_category("get_series_categories", &xtream_config, &client);
+
+    let (live, vod, series) = try_join!(live_categories, vod_categories, series_categories)?;
+
+    let categories = live
+        .into_iter()
+        .chain(vod.into_iter().chain(series.into_iter()))
+        .collect::<Vec<XtreamCategory>>();
+
+    Ok(categories)
+}
+
+async fn get_xtream_category(
+    action: &str,
+    xtream_config: &XtreamConfig,
+    client: &Arc<RestClient>,
+) -> Result<Vec<XtreamCategory>, Error> {
+    let xtream_categories = client
+        .get(&Url::parse(
+            format!(
+                "http://{}/player_api.php?username={}&password={}&action={}",
+                xtream_config.base_domain, xtream_config.username, xtream_config.password, action
+            )
+            .as_str(),
+        )?)
+        .await
+        .context("getting xtream categories for parser")?
+        .json::<Vec<XtreamCategory>>()
+        .await
+        .context("deserializing xtream categoris vector in parser")?;
+
+    Ok(xtream_categories)
 }

@@ -6,13 +6,14 @@ use api::{
         m3u::m3u_file_exist,
         provider::{create_provider, get_provider_entries_by_url, provider_exists},
     },
-    models::provider::CreateProviderRequestApiModel,
+    models::{provider::CreateProviderRequestApiModel, ApiConfiguration},
 };
 use chrono::{Duration, NaiveDateTime, Utc};
 use db::DB;
 use db::{models::ProviderModel, services::provider::ProviderDBService};
 use iptv::m3u::builder::create_m3u_file;
 use log::{debug, error, info};
+use rest_client::RestClient;
 use url::Url;
 use warp::hyper::StatusCode;
 
@@ -21,20 +22,29 @@ use crate::{
     tools::deserialize_body,
 };
 
-pub async fn init_app(config: Configuration, db: Arc<DB>) {
-    if is_existing_provider(&config.m3u, db.clone()).await {
-        try_provider_update(config, db.clone()).await;
+pub async fn init_app(
+    config: Configuration,
+    api_config: ApiConfiguration,
+    db: Arc<DB>,
+    client: Arc<RestClient>,
+) {
+    if is_existing_provider(&config.m3u, db.clone(), client.clone()).await {
+        try_provider_update(config, api_config, db.clone(), client.clone()).await;
     } else {
         info!("Creating new provider..");
-        let provider_id =
-            create_new_provider(&config.m3u, &config.group_excludes, db.clone()).await;
+        let provider_id = create_new_provider(&config.m3u, api_config, db.clone(), client).await;
 
         create_m3u(provider_id, config.proxy_domain, db.clone()).await;
     }
 }
 
-pub async fn try_provider_update(config: Configuration, db: Arc<DB>) {
-    let provider = get_provider(&config.m3u, db.clone())
+pub async fn try_provider_update(
+    config: Configuration,
+    api_config: ApiConfiguration,
+    db: Arc<DB>,
+    client: Arc<RestClient>,
+) {
+    let provider = get_provider(&config.m3u, db.clone(), client.clone())
         .await
         .unwrap_or_default();
 
@@ -44,8 +54,7 @@ pub async fn try_provider_update(config: Configuration, db: Arc<DB>) {
         || config.env == Environment::Development
     {
         info!("Provider is out of date, refreshing..");
-        let provider_id =
-            create_new_provider(&config.m3u, &config.group_excludes, db.clone()).await;
+        let provider_id = create_new_provider(&config.m3u, api_config, db.clone(), client).await;
 
         create_m3u(provider_id, config.proxy_domain, db.clone()).await;
     } else {
@@ -85,14 +94,20 @@ async fn create_m3u(provider_id: u64, proxy_domain: String, db: Arc<DB>) {
     }
 }
 
-async fn create_new_provider(m3u: &Url, group_excludes: &Vec<String>, db: Arc<DB>) -> u64 {
+async fn create_new_provider(
+    m3u: &Url,
+    config: ApiConfiguration,
+    db: Arc<DB>,
+    client: Arc<RestClient>,
+) -> u64 {
     let response = create_provider(
         CreateProviderRequestApiModel {
             name: None::<String>,
             source: m3u.to_string(),
         },
-        group_excludes.to_owned(),
+        config,
         db.clone(),
+        client.clone(),
     )
     .await
     .expect("Could not create provider");
@@ -102,8 +117,10 @@ async fn create_new_provider(m3u: &Url, group_excludes: &Vec<String>, db: Arc<DB
     id
 }
 
-async fn is_existing_provider(m3u: &Url, db: Arc<DB>) -> bool {
-    let response = provider_exists(m3u.as_str(), db.clone()).await.expect("");
+async fn is_existing_provider(m3u: &Url, db: Arc<DB>, client: Arc<RestClient>) -> bool {
+    let response = provider_exists(m3u.as_str(), db.clone(), client)
+        .await
+        .expect("is exisiting provider successful response");
 
     let exists = is_success(response.status())
         && deserialize_body::<bool>(response).await.unwrap_or_default();
@@ -111,8 +128,12 @@ async fn is_existing_provider(m3u: &Url, db: Arc<DB>) -> bool {
     exists
 }
 
-async fn get_provider(m3u: &Url, db: Arc<DB>) -> Result<ProviderModel, anyhow::Error> {
-    let response = get_provider_entries_by_url(m3u.as_str(), db.clone())
+async fn get_provider(
+    m3u: &Url,
+    db: Arc<DB>,
+    client: Arc<RestClient>,
+) -> Result<ProviderModel, anyhow::Error> {
+    let response = get_provider_entries_by_url(m3u.as_str(), db.clone(), client)
         .await
         .expect("Could not get provider created date");
 

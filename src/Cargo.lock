@@ -749,6 +749,8 @@ dependencies = [
  "log",
  "regex",
  "rest-client",
+ "serde",
+ "serde_json",
  "tokio",
  "url",
 ]

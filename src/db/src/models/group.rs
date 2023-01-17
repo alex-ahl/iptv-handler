@@ -7,15 +7,17 @@ use crate::{Connection, CRUD};
 pub struct GroupRequest {
     pub name: String,
     pub exclude: bool,
-
+    pub xtream_cat_id: Option<u64>,
     pub m3u_id: Option<u64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Default, PartialEq)]
 pub struct GroupModel {
     pub id: u64,
     pub name: String,
     pub exclude: bool,
+
+    pub xtream_cat_id: Option<u64>,
 
     #[serde(skip)]
     pub m3u_id: Option<u64>,
@@ -32,7 +34,7 @@ impl Group {
     ) -> Result<Vec<GroupModel>, Error> {
         let res = query_as!(
             GroupModel,
-            "select id, name, exclude as `exclude: bool`, m3u_id from `group` where m3u_id = ?",
+            "select id, name, exclude as `exclude: bool`, xtream_cat_id, m3u_id from `group` where m3u_id = ?",
             m3u_id,
         )
         .fetch_all(tx)
@@ -59,10 +61,15 @@ impl Group {
         Ok(res)
     }
 
-    pub async fn get_all_excluded(&self, tx: &mut Connection) -> Result<Vec<GroupModel>, Error> {
+    pub async fn get_all_excluded(
+        &self,
+        tx: &mut Connection,
+        m3u_id: u64,
+    ) -> Result<Vec<GroupModel>, Error> {
         let res = query_as!(
             GroupModel,
-            "select id, name, exclude as `exclude: bool`, m3u_id from `group` where exclude = 1",
+            "select id, name, exclude as `exclude: bool`, xtream_cat_id, m3u_id from `group` where exclude = 1 and m3u_id = ?",
+            m3u_id
         )
         .fetch_all(tx)
         .await;
@@ -73,7 +80,7 @@ impl Group {
     pub async fn exists(&self, tx: &mut Connection, url: &str) -> Result<bool, Error> {
         let res = query_as!(
             GroupModel,
-            "select id, name, exclude as `exclude: bool`, m3u_id from `group` where name = ?",
+            "select id, name, exclude as `exclude: bool`, xtream_cat_id, m3u_id from `group` where name = ?",
             url
         )
         .fetch_one(tx)
@@ -98,7 +105,7 @@ impl CRUD<GroupModel, GroupRequest> for Group {
     async fn get(&self, tx: &mut Connection, id: u64) -> Result<GroupModel, Error> {
         let res = query_as!(
             GroupModel,
-            "select id, name, exclude as `exclude: bool`, m3u_id from `group` where id = ?",
+            "select id, name, exclude as `exclude: bool`, xtream_cat_id, m3u_id from `group` where id = ?",
             id
         )
         .fetch_one(tx)
@@ -109,9 +116,10 @@ impl CRUD<GroupModel, GroupRequest> for Group {
     async fn insert(&self, tx: &mut Connection, group: GroupRequest) -> Result<u64, Error> {
         let res = query_as!(
             GroupModel,
-            r#"insert into `group` (name, exclude, m3u_id) values (?, ?, ?)"#,
+            r#"insert into `group` (name, exclude, xtream_cat_id, m3u_id) values (?, ?, ?, ?)"#,
             group.name,
             group.exclude,
+            group.xtream_cat_id,
             group.m3u_id
         )
         .execute(tx)

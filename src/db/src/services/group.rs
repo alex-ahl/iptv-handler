@@ -31,4 +31,16 @@ impl GroupDBService {
             bail!("DB has not yet been initialized")
         }
     }
+
+    pub async fn get_excluded_groups(&self, m3u_id: u64) -> Result<Vec<GroupModel>, Error> {
+        if let Some(ref db) = self.db {
+            let mut tx = db.pool.begin().await?;
+
+            let groups = db.group.get_all_excluded(&mut tx, m3u_id).await?;
+
+            Ok(groups)
+        } else {
+            bail!("DB has not yet been initialized")
+        }
+    }
 }

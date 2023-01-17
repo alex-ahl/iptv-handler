@@ -39,8 +39,8 @@ pub struct Configuration {
     pub group_excludes: Vec<String>,
     pub proxy_domain: String,
 
-    #[serde(default = "use_xtream")]
-    pub use_xtream: bool,
+    #[serde(default = "xtream_enable")]
+    pub xtream_enable: bool,
 
     #[serde(default = "xtream_config", flatten)]
     pub xtream_config: XtreamConfig,
@@ -54,7 +54,7 @@ fn default_init_app() -> bool {
     true
 }
 
-fn use_xtream() -> bool {
+fn xtream_enable() -> bool {
     false
 }
 
@@ -72,13 +72,13 @@ fn group_excludes() -> Vec<String> {
 
 pub fn xtream_config() -> XtreamConfig {
     XtreamConfig {
-        xtream_base_domain: "".to_string(),
-        xtream_username: "".to_string(),
-        xtream_password: "".to_string(),
+        xtream_base_domain: String::new(),
+        xtream_username: String::new(),
+        xtream_password: String::new(),
 
         xtream_proxied_domain: None,
-        xtream_proxied_username: "".to_string(),
-        xtream_proxied_password: "".to_string(),
+        xtream_proxied_username: String::new(),
+        xtream_proxied_password: String::new(),
     }
 }
 

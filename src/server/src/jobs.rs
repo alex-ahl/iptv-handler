@@ -1,20 +1,31 @@
 use std::{ffi::OsStr, path::Path, sync::Arc};
 
-use api::handlers::provider::{delete_provider, get_provider_entries_by_url};
+use api::{
+    handlers::provider::{delete_provider, get_provider_entries_by_url},
+    models::ApiConfiguration,
+};
 use chrono::Duration;
 use db::{models::ProviderModel, DB};
 use log::{debug, error, info};
+use rest_client::RestClient;
 use tokio::fs;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
 use crate::{app::try_provider_update, environment::Configuration, tools::deserialize_body};
 
-pub(crate) fn init_jobs(config: Configuration, db: Arc<DB>) {
+pub(crate) fn init_jobs(
+    config: Configuration,
+    api_config: ApiConfiguration,
+    db: Arc<DB>,
+    client: Arc<RestClient>,
+) {
     let schedule = JobScheduler::new().unwrap();
 
-    let update_provider_job = create_update_provider_job(config.clone(), db.clone());
+    let update_provider_job =
+        create_update_provider_job(config.clone(), api_config, db.clone(), client.clone());
     let remove_obsolete_m3u_files = create_remove_obsolete_m3u_files_job();
-    let purge_obsolete_provider_entries = create_purge_obsolete_provider_entries(config, db);
+    let purge_obsolete_provider_entries =
+        create_purge_obsolete_provider_entries(config, db, client);
 
     schedule
         .add(update_provider_job)
@@ -33,18 +44,25 @@ pub(crate) fn init_jobs(config: Configuration, db: Arc<DB>) {
     }
 }
 
-fn create_update_provider_job(config: Configuration, db: Arc<DB>) -> Job {
+fn create_update_provider_job(
+    config: Configuration,
+    api_config: ApiConfiguration,
+    db: Arc<DB>,
+    client: Arc<RestClient>,
+) -> Job {
     let update_provider_job = Job::new_repeated_async(
         Duration::hours(config.hourly_update_frequency.into())
             .to_std()
             .unwrap(),
         move |_uuid, _l| {
             let db = db.clone();
+            let client = client.clone();
             let config = config.clone();
+            let api_config = api_config.clone();
 
             Box::pin(async move {
                 debug!("Running provider update job");
-                try_provider_update(config, db).await;
+                try_provider_update(config, api_config, db, client).await;
             })
         },
     )
@@ -105,16 +123,22 @@ fn create_remove_obsolete_m3u_files_job() -> Job {
     remove_obsolete_m3u_files
 }
 
-fn create_purge_obsolete_provider_entries(config: Configuration, db: Arc<DB>) -> Job {
+fn create_purge_obsolete_provider_entries(
+    config: Configuration,
+    db: Arc<DB>,
+    client: Arc<RestClient>,
+) -> Job {
     let purge_obsolete_provider_entries =
         Job::new_repeated_async(Duration::hours(24).to_std().unwrap(), move |_uuid, _l| {
             let db = db.clone();
+            let client = client.clone();
+
             let config = config.clone();
 
             Box::pin(async move {
                 debug!("Running purge obsolete provider entries");
 
-                let response = get_provider_entries_by_url(config.m3u.as_str(), db.clone())
+                let response = get_provider_entries_by_url(config.m3u.as_str(), db.clone(), client)
                     .await
                     .expect("Could not get provider created date");
 

@@ -20,6 +20,7 @@ use crate::{environment::Configuration, logger::init_logger};
 async fn main() {
     init_logger();
     let config: Configuration = init_env();
+    let api_config = map_api_configuration(config.clone());
 
     let pool = db::connect(config.database_url.clone()).await;
     handle_migrations(&pool).await;
@@ -29,13 +30,19 @@ async fn main() {
 
     let client = Arc::new(RestClient::new());
 
-    let api = init_api(map_api_configuration(config.clone()), db.clone(), client);
+    let api = init_api(api_config.clone(), db.clone(), client.clone());
 
     if config.init_app {
-        init_app(config.clone(), db.clone()).await;
+        init_app(
+            config.clone(),
+            api_config.clone(),
+            db.clone(),
+            client.clone(),
+        )
+        .await;
     }
 
-    init_jobs(config, db);
+    init_jobs(config, api_config, db, client);
 
     serve(api).run(([0, 0, 0, 0], 3001)).await;
 }

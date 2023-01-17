@@ -19,7 +19,7 @@ use crate::{
     handlers::m3u::get_latest_m3u_file,
     models::{
         xtream::{
-            Action, ActionTypes, Categories, LiveStream, Login, OptionalParams, TypeOutput,
+            Action, ActionTypes, Categories, LiveStream, Login, OptionalParams, Series, TypeOutput,
             VodStream, XtreamConfig, XtreamUrl,
         },
         ResponseData,
@@ -162,6 +162,10 @@ impl XtreamService {
                     )
                     .await?
                 }
+                Ok(ActionTypes::GetSeries) => {
+                    self.proxy_series(urls.original, m3u_url, db, client.clone())
+                        .await?
+                }
                 Ok(ActionTypes::GetLiveCategories) => {
                     self.proxy_categories(urls.original, m3u_url, db, client.clone())
                         .await?
@@ -276,6 +280,55 @@ impl XtreamService {
                 json.data = json_filtered;
 
                 let res = compose_json_response(json).context("composing streams json response")?;
+
+                Ok(res)
+            }
+            None => bail!("No provider entry found"),
+        }
+    }
+
+    async fn proxy_series(
+        &self,
+        proxy_url: Url,
+        m3u_url: Url,
+        db: Arc<DB>,
+        client: Arc<RestClient>,
+    ) -> Result<Response<Body>, Error> {
+        let mut json = self
+            .proxy_request_json::<Vec<Series>>(&proxy_url, client.clone())
+            .await
+            .context("getting series json")?;
+
+        let mut provider_db_service = ProviderDBService::new();
+
+        provider_db_service.initialize_db(db.clone());
+
+        match provider_db_service
+            .get_latest_provider_entry(m3u_url.as_str())
+            .await
+        {
+            Some(latest_provider_entry) => {
+                let mut group_service = GroupDBService::new();
+                group_service.initialize_db(db);
+
+                let excluded_groups = group_service
+                    .get_excluded_groups(latest_provider_entry.id)
+                    .await?;
+
+                let mut json_filtered = vec![];
+
+                for series in json.data {
+                    if excluded_groups.clone().into_iter().find(|cat| {
+                        series.category_id == cat.xtream_cat_id.unwrap_or_default().to_string()
+                    }) == None
+                    {
+                        json_filtered.push(series)
+                    }
+                }
+
+                json.data = json_filtered;
+
+                let res = compose_json_response(json).context("composing series json response")?;
 
                 Ok(res)
             }
