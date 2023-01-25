@@ -38,7 +38,7 @@ pub fn xtream_path_auth(
         .map(|path: FullPath, xtream_config: XtreamConfig| {
             let path = path.as_str();
             let path_segments = match path.starts_with("/series")
-                || path.starts_with("/movies")
+                || path.starts_with("/movie")
                 || path.starts_with("/live")
             {
                 true => path.split('/').skip(2).take(2).map(String::from).collect(),

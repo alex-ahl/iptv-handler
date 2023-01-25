@@ -13,19 +13,21 @@ use warp::{
 use crate::{
     models::{
         xtream::{Action, OptionalParams, TypeOutput, XtreamConfig},
-        ApiConfiguration,
+        ApiConfiguration, Path,
     },
     services::xtream::XtreamService,
 };
 
 pub async fn stream(
-    _id: String,
-    xtream_config: XtreamConfig,
+    path: Path,
+    config: ApiConfiguration,
+    db: Arc<DB>,
     client: Arc<RestClient>,
 ) -> Result<Response<Body>, Infallible> {
     let mut xtream_service = XtreamService::new();
-    xtream_service.initialize(xtream_config, client);
-    let res = match xtream_service.proxy_stream().await {
+
+    xtream_service.initialize(config.xtream.clone(), db, client);
+    let res = match xtream_service.proxy_stream(path, config).await {
         Ok(res) => res,
         Err(err) => {
             error!("Failed to proxy xtream request: {}", err);
@@ -39,10 +41,11 @@ pub async fn stream(
 pub async fn xmltv(
     path: FullPath,
     xtream_config: XtreamConfig,
+    db: Arc<DB>,
     client: Arc<RestClient>,
 ) -> Result<Response<Body>, Infallible> {
     let mut xtream_service = XtreamService::new();
-    xtream_service.initialize(xtream_config, client);
+    xtream_service.initialize(xtream_config, db, client);
     let res = match xtream_service.proxy_xmltv(path.as_str()).await {
         Ok(res) => res,
         Err(err) => {
@@ -76,7 +79,7 @@ pub async fn player_api_action(
     db: Arc<DB>,
 ) -> Result<Response<Body>, Infallible> {
     let mut xtream_service = XtreamService::new();
-    xtream_service.initialize(config.xtream, client);
+    xtream_service.initialize(config.xtream, db.clone(), client);
 
     let res = match xtream_service
         .proxy_action(path.as_str(), action, optional_params, config.m3u_url, db)
@@ -95,11 +98,12 @@ pub async fn player_api_action(
 pub async fn player_api_login(
     path: FullPath,
     xtream_config: XtreamConfig,
+    db: Arc<DB>,
     client: Arc<RestClient>,
 ) -> Result<Response<Body>, Infallible> {
     let mut xtream_service = XtreamService::new();
 
-    xtream_service.initialize(xtream_config.clone(), client);
+    xtream_service.initialize(xtream_config.clone(), db, client);
 
     let res = match xtream_service.proxy_login(path.as_str()).await {
         Ok(res) => res,

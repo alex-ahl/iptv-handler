@@ -22,15 +22,16 @@ use crate::{
             Action, ActionTypes, Categories, LiveStream, Login, OptionalParams, Series, TypeOutput,
             VodStream, XtreamConfig, XtreamUrl,
         },
-        ResponseData,
+        ApiConfiguration, Path, ResponseData,
     },
     utils::compose_json_response,
 };
 
-use super::HasId;
+use super::{proxy::ProxyService, HasId};
 
 pub struct XtreamService {
     xtream_config: Option<XtreamConfig>,
+    db: Option<Arc<DB>>,
     client: Option<Arc<RestClient>>,
 }
 
@@ -38,23 +39,40 @@ impl XtreamService {
     pub fn new() -> Self {
         XtreamService {
             xtream_config: None,
+            db: None,
             client: None,
         }
     }
 
-    pub fn initialize(&mut self, xtream_config: XtreamConfig, client: Arc<RestClient>) {
+    pub fn initialize(
+        &mut self,
+        xtream_config: XtreamConfig,
+        db: Arc<DB>,
+        client: Arc<RestClient>,
+    ) {
         self.xtream_config = Some(xtream_config);
+        self.db = Some(db);
         self.client = Some(client);
     }
 
-    pub async fn proxy_stream(&self) -> Result<Response<Body>, Error> {
-        if let (Some(_xtream_config), Some(_client)) =
-            (self.xtream_config.as_ref(), self.client.as_ref())
-        {
-            let response = warp::reply::reply().into_response();
-            Ok(response)
+    pub async fn proxy_stream(
+        &self,
+        path: Path,
+        config: ApiConfiguration,
+    ) -> Result<Response<Body>, Error> {
+        if let (Some(_xtream_config), Some(db), Some(client)) = (
+            self.xtream_config.as_ref(),
+            self.db.as_ref(),
+            self.client.as_ref(),
+        ) {
+            let mut proxy_service = ProxyService::new();
+            proxy_service.initialize(db.clone(), client.clone());
+
+            let res = proxy_service.proxy_stream(path, config).await?;
+
+            Ok(res)
         } else {
-            bail!("proxy service not fully initialized")
+            bail!("xtream service not fully initialized")
         }
     }
 

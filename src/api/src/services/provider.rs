@@ -62,6 +62,8 @@ impl ProviderService {
                     groups: Some(count_groups(&parsed_m3u)),
                 },
                 m3u: M3U {
+                    domain: url.host_str().unwrap().to_string(),
+                    port: url.port(),
                     extinfs: parsed_m3u.extinfs,
                 },
                 channel_count: extinf_entries_count,

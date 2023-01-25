@@ -87,6 +87,24 @@ impl ExtInf {
 
         Ok(res)
     }
+
+    pub async fn get_by_track_id(
+        &self,
+        tx: &mut Connection,
+        m3u_id: u64,
+        track_id: u64
+    ) -> Result<ExtInfModel, Error> {
+        let res = query_as!(
+            ExtInfModel,
+            "select id, name, url, track_id, prefix, extension, exclude as `exclude: bool`, m3u_id from extinf where m3u_id = ? and track_id = ?",
+            m3u_id, 
+            track_id
+        )
+        .fetch_one(tx)
+        .await;
+
+        res
+    }
 }
 
 #[async_trait]

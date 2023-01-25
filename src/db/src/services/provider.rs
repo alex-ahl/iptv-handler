@@ -32,6 +32,8 @@ pub struct CreateProviderRequest {
 
 #[derive(Debug)]
 pub struct M3U {
+    pub domain: String,
+    pub port: Option<u16>,
     pub extinfs: Vec<ExtInf>,
 }
 
@@ -169,7 +171,17 @@ impl ProviderDBService {
 
             let provider_id = db.provider.insert(&mut tx, req.provider_request).await?;
 
-            let m3u_id = db.m3u.insert(&mut tx, M3uRequest { provider_id }).await?;
+            let m3u_id = db
+                .m3u
+                .insert(
+                    &mut tx,
+                    M3uRequest {
+                        provider_id,
+                        domain: req.m3u.domain,
+                        port: req.m3u.port,
+                    },
+                )
+                .await?;
 
             for extinf in req.m3u.extinfs {
                 let extinf_id = db

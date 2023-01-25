@@ -7,12 +7,16 @@ use crate::{Connection, CRUD};
 #[derive(Debug, Clone)]
 pub struct M3uRequest {
     pub provider_id: u64,
+    pub domain: String,
+    pub port: Option<u16>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 
 pub struct M3uModel {
-    id: u64,
+    pub id: u64,
+    pub domain: String,
+    pub port: Option<u16>,
     created_at: Option<NaiveDateTime>,
     modified_at: Option<NaiveDateTime>,
 
@@ -55,8 +59,10 @@ impl CRUD<M3uModel, M3uRequest> for M3u {
     async fn insert(&self, tx: &mut Connection, m3u: M3uRequest) -> Result<u64, Error> {
         let res = query_as!(
             M3uModel,
-            r#"insert into m3u (provider_id, created_at, modified_at) values (?, ?, ?)"#,
+            r#"insert into m3u (provider_id, domain, port, created_at, modified_at) values (?, ?, ?, ?, ?)"#,
             m3u.provider_id,
+            m3u.domain,
+            m3u.port,
             Utc::now(),
             Utc::now(),
         )

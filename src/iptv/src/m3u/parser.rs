@@ -181,7 +181,7 @@ fn parse_prefix(segments: &Split<char>) -> Option<String> {
     Some(String::from(first_segment))
 }
 
-fn parse_track_id(last_segment: &String) -> Option<String> {
+pub fn parse_track_id(last_segment: &String) -> Option<String> {
     if last_segment.is_empty() {
         return None;
     }
@@ -193,7 +193,7 @@ fn parse_track_id(last_segment: &String) -> Option<String> {
     Some(last_segment.clone())
 }
 
-fn parse_extension(last_segment: String) -> Option<String> {
+pub fn parse_extension(last_segment: String) -> Option<String> {
     if last_segment.is_empty() {
         return None;
     }

@@ -24,5 +24,20 @@ pub struct ResponseData<T> {
 pub struct ApiConfiguration {
     pub m3u_url: Url,
     pub group_excludes: Vec<String>,
+    pub xtream_enabled: bool,
     pub xtream: XtreamConfig,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Path {
+    pub segment1: Option<String>,
+    pub segment2: Option<String>,
+    pub segment3: Option<String>,
+    pub id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Track {
+    pub id: u64,
+    pub extension: Option<String>,
 }

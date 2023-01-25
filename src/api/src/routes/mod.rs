@@ -24,6 +24,6 @@ pub fn get_routes(
     root_routes()
         .or(provider_routes(config.clone(), db.clone(), client.clone()))
         .or(m3u_routes(db.clone()))
-        .or(proxy_routes(db.clone(), client.clone()))
+        .or(proxy_routes(config.clone(), db.clone(), client.clone()))
         .or(xtream_routes(config, client, db))
 }

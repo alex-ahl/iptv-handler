@@ -14,6 +14,7 @@ pub fn map_api_configuration(config: Configuration) -> ApiConfiguration {
     ApiConfiguration {
         m3u_url: config.m3u,
         group_excludes: config.group_excludes,
+        xtream_enabled: config.xtream_enabled,
         xtream: config.xtream_config,
     }
 }
@@ -39,8 +40,8 @@ pub struct Configuration {
     pub group_excludes: Vec<String>,
     pub proxy_domain: String,
 
-    #[serde(default = "xtream_enable")]
-    pub xtream_enable: bool,
+    #[serde(default = "xtream_enabled")]
+    pub xtream_enabled: bool,
 
     #[serde(default = "xtream_config", flatten)]
     pub xtream_config: XtreamConfig,
@@ -54,7 +55,7 @@ fn default_init_app() -> bool {
     true
 }
 
-fn xtream_enable() -> bool {
+fn xtream_enabled() -> bool {
     false
 }
 

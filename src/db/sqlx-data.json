@@ -336,6 +336,122 @@
     },
     "query": "select id, name, source, groups, channels, created_at, modified_at from provider where source = ?"
   },
+  "38e0532347b4a52e1b51a6544177f78e2bfc03b70cba5a54e616ef1c9ad3b80f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "url",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "track_id",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "prefix",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "extension",
+          "ordinal": 5,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "exclude: bool",
+          "ordinal": 6,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 0
+            },
+            "max_size": 4,
+            "type": "Tiny"
+          }
+        },
+        {
+          "name": "m3u_id",
+          "ordinal": 7,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "select id, name, url, track_id, prefix, extension, exclude as `exclude: bool`, m3u_id from extinf where m3u_id = ? and track_id = ?"
+  },
   "3dff00ceae085340ef9c2383c878a50e4fcec8d36f1e55dd074ef86f2a281be2": {
     "describe": {
       "columns": [
@@ -422,6 +538,16 @@
       }
     },
     "query": "insert into attribute (`key`, `value`, extinf_id) values (?, ?, ?)"
+  },
+  "50900d373e00a3538e23ab4be35e757f6c167185b85325390b1ffb5d6ef895f7": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 5
+      }
+    },
+    "query": "insert into m3u (provider_id, domain, port, created_at, modified_at) values (?, ?, ?, ?, ?)"
   },
   "59eea809dcf51907054c7ddf63fccaa2b22179c6cfbee18756b76dd78ade900f": {
     "describe": {
@@ -733,8 +859,32 @@
           }
         },
         {
-          "name": "provider_id",
+          "name": "domain",
           "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "port",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 32
+            },
+            "max_size": 5,
+            "type": "Short"
+          }
+        },
+        {
+          "name": "provider_id",
+          "ordinal": 3,
           "type_info": {
             "char_set": 63,
             "flags": {
@@ -746,7 +896,7 @@
         },
         {
           "name": "created_at",
-          "ordinal": 2,
+          "ordinal": 4,
           "type_info": {
             "char_set": 63,
             "flags": {
@@ -758,7 +908,7 @@
         },
         {
           "name": "modified_at",
-          "ordinal": 3,
+          "ordinal": 5,
           "type_info": {
             "char_set": 63,
             "flags": {
@@ -771,6 +921,8 @@
       ],
       "nullable": [
         false,
+        false,
+        true,
         true,
         true,
         true
@@ -893,16 +1045,6 @@
       }
     },
     "query": "insert into extinf (name, url, prefix, track_id, extension, exclude, m3u_id) values (?, ?, ?, ?, ?, ?, ?)"
-  },
-  "b4c80b306fc230774d55a05981564a57dacf08559f79dc7985212d918643049b": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Right": 3
-      }
-    },
-    "query": "insert into m3u (provider_id, created_at, modified_at) values (?, ?, ?)"
   },
   "bbc03e79ad03398841b9c732d6f1298526e53ad75ce8e5b07b38216a3448542e": {
     "describe": {
