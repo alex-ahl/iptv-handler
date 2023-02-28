@@ -26,9 +26,7 @@ services:
       context: .
       dockerfile: Dockerfile.migrations
     command: >
-      bash -c "sqlx database drop -y && 
-               sqlx database create && 
-               sqlx migrate run &&
+      bash -c "sqlx database reset -y && 
                cargo sqlx prepare -- --lib"
     networks:
       - iptvhandler
