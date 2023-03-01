@@ -15,7 +15,7 @@ pub struct Action {
     pub action: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TypeOutput {
     #[serde(rename = "type")]
     pub type_: String,

@@ -8,12 +8,12 @@ use warp::{
 
 use crate::{
     filters::{
-        with_config, with_db, with_rest_client, with_xtream_config,
+        with_xtream_handler,
         xtream::{xtream_param_auth, xtream_path_auth},
     },
-    handlers::{self, handle_rejection},
+    handlers::{handle_rejection, xtream::XtreamHandler},
     models::{
-        xtream::{Action, OptionalParams, TypeOutput, XtreamConfig},
+        xtream::{Action, OptionalParams, TypeOutput},
         ApiConfiguration, Path,
     },
 };
@@ -23,45 +23,34 @@ pub fn xtream_routes(
     client: Arc<RestClient>,
     db: Arc<DB>,
 ) -> impl Filter<Extract = impl Reply, Error = Infallible> + Clone {
+    let handler = XtreamHandler::new(config.clone(), db.clone(), client.clone());
+
     let player_base_url = warp::path!("player_api.php")
         .and(get())
         .and(xtream_param_auth(config.xtream.clone()))
         .boxed();
 
-    player_api_action(
-        player_base_url.clone(),
-        config.clone(),
-        client.clone(),
-        db.clone(),
-    )
-    .or(get_type_output(config.xtream.clone()))
-    .or(xmltv(config.xtream.clone(), db.clone(), client.clone()))
-    .or(player_api_login(
-        player_base_url,
-        config.xtream.clone(),
-        db.clone(),
-        client.clone(),
-    ))
-    .or(stream_three_segment(
-        config.clone(),
-        db.clone(),
-        client.clone(),
-    ))
-    .or(stream_four_segment(config, db.clone(), client))
-    .recover(handle_rejection)
+    let get_path_auth = xtream_path_auth(config.xtream.clone()).and(get()).boxed();
+    let get_param_auth = xtream_param_auth(config.xtream.clone()).and(get()).boxed();
+
+    player_api_action(handler.clone(), player_base_url.clone())
+        .or(get_type_output(get_param_auth.clone(), handler.clone()))
+        .or(xmltv(get_param_auth, handler.clone()))
+        .or(player_api_login(handler.clone(), player_base_url))
+        .or(stream_three_segment(get_path_auth.clone(), handler.clone()))
+        .or(stream_four_segment(get_path_auth, handler.clone()))
+        .recover(handle_rejection)
 }
 
 fn stream_three_segment(
-    config: ApiConfiguration,
-    db: Arc<DB>,
-    client: Arc<RestClient>,
+    base_filter: BoxedFilter<()>,
+    handler: XtreamHandler,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-    path::param::<String>()
+    base_filter
+        .and(path::param::<String>())
         .and(path::param::<String>())
         .and(path::param::<String>())
         .and(path::end())
-        .and(get())
-        .and(xtream_path_auth(config.xtream.clone()))
         .map(|seg1, seg2: String, id: String| Path {
             segment1: Some(seg1),
             segment2: Some(seg2),
@@ -69,24 +58,20 @@ fn stream_three_segment(
             id,
         })
         .and(headers_cloned())
-        .and(with_config(config))
-        .and(with_db(db))
-        .and(with_rest_client(client))
-        .and_then(handlers::xtream::stream)
+        .and(with_xtream_handler(handler))
+        .and_then(|path, headers, handler: XtreamHandler| handler.stream(path, headers))
 }
 
 fn stream_four_segment(
-    config: ApiConfiguration,
-    db: Arc<DB>,
-    client: Arc<RestClient>,
+    base_filter: BoxedFilter<()>,
+    handler: XtreamHandler,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-    path::param::<String>()
+    base_filter
+        .and(path::param::<String>())
         .and(path::param::<String>())
         .and(path::param::<String>())
         .and(path::param::<String>())
         .and(path::end())
-        .and(get())
-        .and(xtream_path_auth(config.xtream.clone()))
         .map(|seg1, seg2: String, seg3: String, id: String| Path {
             segment1: Some(seg1),
             segment2: Some(seg2),
@@ -94,63 +79,54 @@ fn stream_four_segment(
             id,
         })
         .and(headers_cloned())
-        .and(with_config(config.clone()))
-        .and(with_db(db))
-        .and(with_rest_client(client))
-        .and_then(handlers::xtream::stream)
+        .and(with_xtream_handler(handler))
+        .and_then(|path, headers, handler: XtreamHandler| handler.stream(path, headers))
 }
 
 fn xmltv(
-    xtream_config: XtreamConfig,
-    db: Arc<DB>,
-    client: Arc<RestClient>,
+    base_filter: BoxedFilter<()>,
+    handler: XtreamHandler,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     warp::path!("xmltv.php")
-        .and(get())
-        .and(xtream_param_auth(xtream_config.clone()))
+        .and(base_filter)
         .and(path::full())
-        .and(with_xtream_config(xtream_config))
-        .and(with_db(db))
-        .and(with_rest_client(client))
-        .and_then(handlers::xtream::xmltv)
+        .and(with_xtream_handler(handler))
+        .and_then(|path, handler: XtreamHandler| handler.xmltv(path))
 }
 
 fn get_type_output(
-    xtream_config: XtreamConfig,
+    base_filter: BoxedFilter<()>,
+    handler: XtreamHandler,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     warp::path!("get.php")
-        .and(get())
-        .and(xtream_param_auth(xtream_config.clone()))
+        .and(base_filter)
         .and(query::<TypeOutput>())
-        .and_then(handlers::xtream::get_type_output)
+        .and(with_xtream_handler(handler))
+        .and_then(|type_output: TypeOutput, handler: XtreamHandler| {
+            handler.get_type_output(type_output)
+        })
 }
 
 fn player_api_action(
+    handler: XtreamHandler,
     base_url: BoxedFilter<()>,
-    config: ApiConfiguration,
-    client: Arc<RestClient>,
-    db: Arc<DB>,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     base_url
         .and(query::<Action>())
         .and(query::<OptionalParams>())
         .and(path::full())
-        .and(with_config(config))
-        .and(with_rest_client(client))
-        .and(with_db(db))
-        .and_then(handlers::xtream::player_api_action)
+        .and(with_xtream_handler(handler))
+        .and_then(|action, optional_params, path, handler: XtreamHandler| {
+            handler.player_api_action(action, optional_params, path)
+        })
 }
 
 fn player_api_login(
+    handler: XtreamHandler,
     base_url: BoxedFilter<()>,
-    xtream_config: XtreamConfig,
-    db: Arc<DB>,
-    client: Arc<RestClient>,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     base_url
         .and(path::full())
-        .and(with_xtream_config(xtream_config))
-        .and(with_db(db))
-        .and(with_rest_client(client))
-        .and_then(handlers::xtream::player_api_login)
+        .and(with_xtream_handler(handler))
+        .and_then(|path, handler: XtreamHandler| handler.player_api_login(path))
 }

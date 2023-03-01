@@ -7,9 +7,12 @@ use rest_client::RestClient;
 use serde::de::DeserializeOwned;
 use warp::{any, body, Filter};
 
-use crate::models::{
-    xtream::{Credentials, XtreamConfig},
-    ApiConfiguration,
+use crate::{
+    handlers::{proxy::ProxyHandler, xtream::XtreamHandler},
+    models::{
+        xtream::{Credentials, XtreamConfig},
+        ApiConfiguration,
+    },
 };
 
 pub fn with_db(db: Arc<DB>) -> impl Filter<Extract = (Arc<DB>,), Error = Infallible> + Clone {
@@ -57,4 +60,16 @@ pub fn with_credentials(
     credentials: Credentials,
 ) -> impl Filter<Extract = (Credentials,), Error = Infallible> + Clone {
     any().map(move || credentials.clone())
+}
+
+pub fn with_xtream_handler(
+    xtream_handler: XtreamHandler,
+) -> impl Filter<Extract = (XtreamHandler,), Error = Infallible> + Clone {
+    any().map(move || xtream_handler.clone())
+}
+
+pub fn with_proxy_handler(
+    proxy_handler: ProxyHandler,
+) -> impl Filter<Extract = (ProxyHandler,), Error = Infallible> + Clone {
+    any().map(move || proxy_handler.clone())
 }

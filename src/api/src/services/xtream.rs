@@ -1,16 +1,18 @@
 use anyhow::{bail, ensure, Context, Error};
 use db::{
     services::{group::GroupDBService, provider::ProviderDBService},
-    DB,
+    CRUD, DB,
 };
+
 use log::info;
+use reqwest::Method;
 use rest_client::RestClient;
 use serde::{de::DeserializeOwned, Serialize};
 use std::sync::Arc;
 use url::Url;
 use warp::{
+    http::HeaderMap,
     hyper::{Body, Response},
-    Reply,
 };
 
 use std::str::FromStr;
@@ -20,81 +22,96 @@ use crate::{
     models::{
         xtream::{
             Action, ActionTypes, Categories, LiveStream, Login, OptionalParams, Series, TypeOutput,
-            VodStream, XtreamConfig, XtreamUrl,
+            VodStream, XtreamUrl,
         },
-        ApiConfiguration, Path, ResponseData,
+        ApiConfiguration, Path,
     },
-    utils::compose_json_response,
+    utils::{proxy::ProxyUtil, response::ResponseUtil, url::UrlUtil},
 };
 
-use super::{proxy::ProxyService, HasId};
+use super::HasId;
 
+#[derive(Clone)]
 pub struct XtreamService {
-    xtream_config: Option<XtreamConfig>,
-    db: Option<Arc<DB>>,
-    client: Option<Arc<RestClient>>,
+    provider_db_service: ProviderDBService,
+    proxy_util: ProxyUtil,
+    response_util: ResponseUtil,
+    url_util: UrlUtil,
+    config: ApiConfiguration,
+    db: Arc<DB>,
+    client: Arc<RestClient>,
 }
 
 impl XtreamService {
-    pub fn new() -> Self {
+    pub fn new(config: ApiConfiguration, db: Arc<DB>, client: Arc<RestClient>) -> Self {
         XtreamService {
-            xtream_config: None,
-            db: None,
-            client: None,
+            provider_db_service: ProviderDBService::new(),
+            proxy_util: ProxyUtil::new(ResponseUtil::new(), db.clone(), client.clone()),
+            response_util: ResponseUtil::new(),
+            url_util: UrlUtil::new(),
+            config,
+            db,
+            client,
         }
-    }
-
-    pub fn initialize(
-        &mut self,
-        xtream_config: XtreamConfig,
-        db: Arc<DB>,
-        client: Arc<RestClient>,
-    ) {
-        self.xtream_config = Some(xtream_config);
-        self.db = Some(db);
-        self.client = Some(client);
     }
 
     pub async fn proxy_stream(
         &self,
         path: Path,
-        config: ApiConfiguration,
+        headers: HeaderMap,
     ) -> Result<Response<Body>, Error> {
-        if let (Some(_xtream_config), Some(db), Some(client)) = (
-            self.xtream_config.as_ref(),
-            self.db.as_ref(),
-            self.client.as_ref(),
-        ) {
-            let mut proxy_service = ProxyService::new();
-            proxy_service.initialize(db.clone(), client.clone());
+        let mut tx = self.db.pool.begin().await?;
 
-            let res = proxy_service.proxy_stream(path, config).await?;
+        match self
+            .provider_db_service
+            .get_latest_provider_entry(self.config.m3u_url.as_str())
+            .await
+        {
+            Some(latest_provider_entry) => {
+                let m3u = self
+                    .db
+                    .m3u
+                    .get(&mut tx, latest_provider_entry.id.clone())
+                    .await
+                    .context(format!(
+                        "Unable to get m3u entry with id: {}",
+                        latest_provider_entry.id
+                    ))?;
 
-            Ok(res)
-        } else {
-            bail!("xtream service not fully initialized")
+                let url = self.url_util.compose_proxy_stream_url(
+                    path.clone(),
+                    m3u.clone(),
+                    Some(self.config.xtream.xtream_username.clone()),
+                    Some(self.config.xtream.xtream_password.clone()),
+                )?;
+
+                let res = self.client.request(Method::GET, url, headers).await?;
+
+                let builder = self.response_util.compose_base_response(&res).await?;
+
+                let res = self
+                    .response_util
+                    .compose_proxy_stream_response(res, builder)
+                    .await
+                    .context("error proxying stream")?;
+
+                return Ok(res);
+            }
+            None => bail!("Unable to init provider service"),
         }
     }
 
     pub async fn proxy_xmltv(&self, full_path: &str) -> Result<Response<Body>, Error> {
-        if let (Some(xtream_config), Some(client)) =
-            (self.xtream_config.as_ref(), self.client.as_ref())
-        {
-            let cred_query = self.compose_credentials_query_string(xtream_config);
-            let url = self.compose_xmltv_url(xtream_config, full_path, cred_query)?;
+        let cred_query = self.compose_credentials_query_string();
+        let url = self.compose_xmltv_url(full_path, cred_query)?;
 
-            let response = self
-                .proxy_request_bytes(&url.original, client.clone())
-                .await?;
+        let response = self.proxy_util.proxy_request_bytes(&url.original).await?;
 
-            let status_code = response.status();
+        let status_code = response.status();
 
-            info!("[{}] {} => {}", status_code, url.proxied, url.original);
+        info!("[{}] {} => {}", status_code, url.proxied, url.original);
 
-            Ok(response)
-        } else {
-            bail!("proxy service not fully initialized")
-        }
+        Ok(response)
     }
 
     pub async fn proxy_type_output(
@@ -114,32 +131,27 @@ impl XtreamService {
     }
 
     pub async fn proxy_login(&self, full_path: &str) -> Result<Response<Body>, Error> {
-        if let (Some(xtream_config), Some(client)) =
-            (self.xtream_config.as_ref(), self.client.as_ref())
-        {
-            let url = self.compose_login_url(xtream_config, full_path)?;
+        let url = self.compose_login_url(full_path)?;
 
-            let mut res = self
-                .proxy_request_json::<Login>(&url.original, client.to_owned())
-                .await?;
+        let mut res = self
+            .proxy_util
+            .proxy_request_json::<Login>(&url.original)
+            .await?;
 
-            let status_code = res.status_code.clone();
+        let status_code = res.status_code.clone();
 
-            res.data.user_info.username = xtream_config.xtream_proxied_username.clone();
-            res.data.user_info.password = xtream_config.xtream_proxied_password.clone();
-            res.data.server_info.url = xtream_config.xtream_proxied_domain.clone().unwrap();
-            res.data.server_info.port = 3001.to_string();
-            res.data.server_info.rtmp_port = 3001.to_string();
-            res.data.server_info.https_port = 3001.to_string();
+        res.data.user_info.username = self.config.xtream.xtream_proxied_username.clone();
+        res.data.user_info.password = self.config.xtream.xtream_proxied_password.clone();
+        res.data.server_info.url = self.config.xtream.xtream_proxied_domain.clone().unwrap();
+        res.data.server_info.port = 3001.to_string();
+        res.data.server_info.rtmp_port = 3001.to_string();
+        res.data.server_info.https_port = 3001.to_string();
 
-            let response = compose_json_response(res)?;
+        let response = self.response_util.compose_json_response(res)?;
 
-            info!("[{}] {} => {}", status_code, url.proxied, url.original);
+        info!("[{}] {} => {}", status_code, url.proxied, url.original);
 
-            Ok(response)
-        } else {
-            bail!("proxy service not fully initialized")
-        }
+        Ok(response)
     }
 
     pub async fn proxy_action(
@@ -147,94 +159,52 @@ impl XtreamService {
         full_path: &str,
         Action { action }: Action,
         optional_params: OptionalParams,
-        m3u_url: Url,
-        db: Arc<DB>,
     ) -> Result<Response<Body>, Error> {
-        if let (Some(xtream_config), Some(client)) =
-            (self.xtream_config.as_ref(), self.client.as_ref())
-        {
-            let query =
-                self.compose_action_query_string(xtream_config, action.clone(), optional_params);
+        let query = self.compose_action_query_string(action.clone(), optional_params);
 
-            let urls = self.compose_action_url(&xtream_config, full_path, query)?;
-            let original_url = urls.original.clone();
+        let urls = self.compose_action_url(full_path, query)?;
+        let original_url = urls.original.clone();
 
-            let response = match ActionTypes::from_str(action.as_str()) {
-                Ok(ActionTypes::GetLiveStreams) => {
-                    self.proxy_streams::<LiveStream>(
-                        urls.original,
-                        &m3u_url,
-                        "live",
-                        db,
-                        client.clone(),
-                    )
+        let response = match ActionTypes::from_str(action.as_str()) {
+            Ok(ActionTypes::GetLiveStreams) => {
+                self.proxy_streams::<LiveStream>(urls.original, "live")
                     .await?
-                }
-                Ok(ActionTypes::GetVodStreams) => {
-                    self.proxy_streams::<VodStream>(
-                        urls.original,
-                        &m3u_url,
-                        "movie",
-                        db,
-                        client.clone(),
-                    )
+            }
+            Ok(ActionTypes::GetVodStreams) => {
+                self.proxy_streams::<VodStream>(urls.original, "movie")
                     .await?
-                }
-                Ok(ActionTypes::GetSeries) => {
-                    self.proxy_series(urls.original, m3u_url, db, client.clone())
-                        .await?
-                }
-                Ok(ActionTypes::GetLiveCategories) => {
-                    self.proxy_categories(urls.original, m3u_url, db, client.clone())
-                        .await?
-                }
-                Ok(ActionTypes::GetVodCategories) => {
-                    self.proxy_categories(urls.original, m3u_url, db, client.clone())
-                        .await?
-                }
-                Ok(ActionTypes::GetSeriesCategories) => {
-                    self.proxy_categories(urls.original, m3u_url, db, client.clone())
-                        .await?
-                }
+            }
+            Ok(ActionTypes::GetSeries) => self.proxy_series(urls.original).await?,
+            Ok(ActionTypes::GetLiveCategories) => self.proxy_categories(urls.original).await?,
+            Ok(ActionTypes::GetVodCategories) => self.proxy_categories(urls.original).await?,
 
-                _ => {
-                    self.proxy_request_bytes(&urls.original, client.clone())
-                        .await?
-                }
-            };
+            Ok(ActionTypes::GetSeriesCategories) => self.proxy_categories(urls.original).await?,
 
-            let status_code = response.status();
+            _ => self.proxy_util.proxy_request_bytes(&urls.original).await?,
+        };
 
-            info!("[{}] {} => {}", status_code, urls.proxied, original_url);
+        let status_code = response.status();
 
-            Ok(response)
-        } else {
-            bail!("proxy service not fully initialized")
-        }
+        info!("[{}] {} => {}", status_code, urls.proxied, original_url);
+
+        Ok(response)
     }
 
-    async fn proxy_categories(
-        &self,
-        proxy_url: Url,
-        m3u_url: Url,
-        db: Arc<DB>,
-        client: Arc<RestClient>,
-    ) -> Result<Response<Body>, Error> {
+    async fn proxy_categories(&self, proxy_url: Url) -> Result<Response<Body>, Error> {
         let mut json = self
-            .proxy_request_json::<Categories>(&proxy_url, client.clone())
+            .proxy_util
+            .proxy_request_json::<Categories>(&proxy_url)
             .await
             .context("getting categories json")?;
 
-        let mut provider_db_service = ProviderDBService::new();
-        provider_db_service.initialize_db(db.clone());
-
-        match provider_db_service
-            .get_latest_provider_entry(m3u_url.as_str())
+        match self
+            .provider_db_service
+            .get_latest_provider_entry(self.config.m3u_url.as_str())
             .await
         {
             Some(latest_provider_entry) => {
                 let mut group_service = GroupDBService::new();
-                group_service.initialize_db(db);
+                group_service.initialize_db(self.db.clone());
 
                 let groups = group_service
                     .get_groups(latest_provider_entry.id)
@@ -250,7 +220,9 @@ impl XtreamService {
                 json.data
                     .retain(|group| included_groups.contains(&group.category_name));
 
-                let res = compose_json_response(json)
+                let res = self
+                    .response_util
+                    .compose_json_response(json)
                     .context("composing get categories json response")?;
 
                 Ok(res)
@@ -259,32 +231,29 @@ impl XtreamService {
         }
     }
 
-    async fn proxy_streams<T>(
-        &self,
-        proxy_url: Url,
-        m3u_url: &Url,
-        prefix: &str,
-        db: Arc<DB>,
-        client: Arc<RestClient>,
-    ) -> Result<Response<Body>, Error>
+    async fn proxy_streams<T>(&self, proxy_url: Url, prefix: &str) -> Result<Response<Body>, Error>
     where
         T: DeserializeOwned + Send + Serialize + Clone + HasId,
     {
         let mut json = self
-            .proxy_request_json::<Vec<T>>(&proxy_url, client.clone())
+            .proxy_util
+            .proxy_request_json::<Vec<T>>(&proxy_url)
             .await
             .context("getting streams json")?;
 
-        let mut provider_db_service = ProviderDBService::new();
-        provider_db_service.initialize_db(db.clone());
-
-        match provider_db_service
-            .get_latest_provider_entry(m3u_url.as_str())
+        match self
+            .provider_db_service
+            .get_latest_provider_entry(self.config.m3u_url.as_str())
             .await
         {
             Some(latest_provider_entry) => {
-                let excluded_extinfs_ids = provider_db_service
-                    .get_exclude_eligible_by_m3u_id(latest_provider_entry.id, prefix, db)
+                let excluded_extinfs_ids = self
+                    .provider_db_service
+                    .get_exclude_eligible_by_m3u_id(
+                        latest_provider_entry.id,
+                        prefix,
+                        self.db.clone(),
+                    )
                     .await?;
 
                 let mut json_filtered = vec![];
@@ -297,7 +266,10 @@ impl XtreamService {
 
                 json.data = json_filtered;
 
-                let res = compose_json_response(json).context("composing streams json response")?;
+                let res = self
+                    .response_util
+                    .compose_json_response(json)
+                    .context("composing streams json response")?;
 
                 Ok(res)
             }
@@ -305,29 +277,21 @@ impl XtreamService {
         }
     }
 
-    async fn proxy_series(
-        &self,
-        proxy_url: Url,
-        m3u_url: Url,
-        db: Arc<DB>,
-        client: Arc<RestClient>,
-    ) -> Result<Response<Body>, Error> {
+    async fn proxy_series(&self, proxy_url: Url) -> Result<Response<Body>, Error> {
         let mut json = self
-            .proxy_request_json::<Vec<Series>>(&proxy_url, client.clone())
+            .proxy_util
+            .proxy_request_json::<Vec<Series>>(&proxy_url)
             .await
             .context("getting series json")?;
 
-        let mut provider_db_service = ProviderDBService::new();
-
-        provider_db_service.initialize_db(db.clone());
-
-        match provider_db_service
-            .get_latest_provider_entry(m3u_url.as_str())
+        match self
+            .provider_db_service
+            .get_latest_provider_entry(self.config.m3u_url.as_str())
             .await
         {
             Some(latest_provider_entry) => {
                 let mut group_service = GroupDBService::new();
-                group_service.initialize_db(db);
+                group_service.initialize_db(self.db.clone());
 
                 let excluded_groups = group_service
                     .get_excluded_groups(latest_provider_entry.id)
@@ -346,7 +310,10 @@ impl XtreamService {
 
                 json.data = json_filtered;
 
-                let res = compose_json_response(json).context("composing series json response")?;
+                let res = self
+                    .response_util
+                    .compose_json_response(json)
+                    .context("composing series json response")?;
 
                 Ok(res)
             }
@@ -354,10 +321,10 @@ impl XtreamService {
         }
     }
 
-    fn compose_credentials_query_string(&self, xtream_config: &XtreamConfig) -> String {
+    fn compose_credentials_query_string(&self) -> String {
         let query = format!(
             "?username={}&password={}",
-            xtream_config.xtream_username, xtream_config.xtream_password,
+            self.config.xtream.xtream_username, self.config.xtream.xtream_password,
         );
 
         query
@@ -365,13 +332,12 @@ impl XtreamService {
 
     fn compose_action_query_string(
         &self,
-        xtream_config: &XtreamConfig,
         action: String,
         optional_params: OptionalParams,
     ) -> String {
         let mut query = format!(
             "?username={}&password={}&action={}",
-            xtream_config.xtream_username, xtream_config.xtream_password, action
+            self.config.xtream.xtream_username, self.config.xtream.xtream_password, action
         );
 
         if let Some(category_id) = optional_params.category_id {
@@ -393,63 +359,16 @@ impl XtreamService {
         query
     }
 
-    async fn proxy_request_json<T>(
-        &self,
-        url: &Url,
-        client: Arc<RestClient>,
-    ) -> Result<ResponseData<T>, Error>
-    where
-        T: DeserializeOwned + Send,
-    {
-        let res = client.get(&url).await.context("error on proxy")?;
-        let headers = res.headers().clone();
-        let status_code = res.status().clone();
-
-        let data = res.json::<T>().await.context("deserialize json body")?;
-
-        Ok(ResponseData {
-            data,
-            headers,
-            status_code,
-        })
-    }
-
-    async fn proxy_request_bytes(
-        &self,
-        url: &Url,
-        client: Arc<RestClient>,
-    ) -> Result<Response<Body>, Error> {
-        let res = client.get(&url).await.context("error on proxy")?;
-        let headers = res.headers();
-        let status = res.status();
-
-        let mut builder = Response::builder().status(status);
-
-        for (key, val) in headers.iter() {
-            builder = builder.header(key, val);
-        }
-
-        let bytes = res.bytes().await.context("error getting proxy bytes")?;
-
-        let response = builder.body(bytes).into_response();
-
-        Ok(response)
-    }
-
-    fn compose_action_url(
-        &self,
-        xtream_config: &XtreamConfig,
-        full_path: &str,
-        query: String,
-    ) -> Result<XtreamUrl, Error> {
-        let original = self.parse_url(
-            xtream_config.xtream_base_domain.clone(),
+    fn compose_action_url(&self, full_path: &str, query: String) -> Result<XtreamUrl, Error> {
+        let original = self.url_util.parse_url(
+            self.config.xtream.xtream_base_domain.clone(),
             full_path,
             Some(query.clone()),
         )?;
 
-        let proxied = self.parse_url(
-            xtream_config
+        let proxied = self.url_util.parse_url(
+            self.config
+                .xtream
                 .xtream_proxied_domain
                 .clone()
                 .unwrap_or_default(),
@@ -462,24 +381,21 @@ impl XtreamService {
         Ok(urls)
     }
 
-    fn compose_login_url(
-        &self,
-        xtream_config: &XtreamConfig,
-        full_path: &str,
-    ) -> Result<XtreamUrl, Error> {
+    fn compose_login_url(&self, full_path: &str) -> Result<XtreamUrl, Error> {
         let query = Some(format!(
             "?username={}&password={}",
-            xtream_config.xtream_username, xtream_config.xtream_password
+            self.config.xtream.xtream_username, self.config.xtream.xtream_password
         ));
 
-        let original = self.parse_url(
-            xtream_config.xtream_base_domain.clone(),
+        let original = self.url_util.parse_url(
+            self.config.xtream.xtream_base_domain.clone(),
             full_path,
             query.clone(),
         )?;
 
-        let proxied = self.parse_url(
-            xtream_config
+        let proxied = self.url_util.parse_url(
+            self.config
+                .xtream
                 .xtream_proxied_domain
                 .clone()
                 .unwrap_or_default(),
@@ -492,20 +408,16 @@ impl XtreamService {
         Ok(urls)
     }
 
-    fn compose_xmltv_url(
-        &self,
-        xtream_config: &XtreamConfig,
-        full_path: &str,
-        query: String,
-    ) -> Result<XtreamUrl, Error> {
-        let original = self.parse_url(
-            xtream_config.xtream_base_domain.clone(),
+    fn compose_xmltv_url(&self, full_path: &str, query: String) -> Result<XtreamUrl, Error> {
+        let original = self.url_util.parse_url(
+            self.config.xtream.xtream_base_domain.clone(),
             full_path,
             Some(query.clone()),
         )?;
 
-        let proxied = self.parse_url(
-            xtream_config
+        let proxied = self.url_util.parse_url(
+            self.config
+                .xtream
                 .xtream_proxied_domain
                 .clone()
                 .unwrap_or_default(),
@@ -516,21 +428,5 @@ impl XtreamService {
         let urls = XtreamUrl { original, proxied };
 
         Ok(urls)
-    }
-
-    fn parse_url(
-        &self,
-        domain: String,
-        full_path: &str,
-        query: Option<String>,
-    ) -> Result<Url, Error> {
-        let url = match query {
-            Some(query) => {
-                Url::parse(format!("{}{}{}{}", "http://", domain, full_path, query).as_str())?
-            }
-            None => Url::parse(format!("{}{}{}", "http://", domain, full_path).as_str())?,
-        };
-
-        Ok(url)
     }
 }

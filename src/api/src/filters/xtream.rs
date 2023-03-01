@@ -45,10 +45,14 @@ pub fn xtream_path_auth(
                 false => path.split('/').skip(1).take(2).map(String::from).collect(),
             };
 
-            (path_segments, xtream_config)
+            (path_segments, xtream_config, path.to_string())
         })
         .and_then(
-            |(credentials, xtream_config): (Vec<String>, XtreamConfig)| async move {
+            |(credentials, xtream_config, path): (Vec<String>, XtreamConfig, String)| async move {
+                if path.contains("/play") {
+                    return Ok(());
+                }
+
                 if credentials.first().unwrap().to_owned() == xtream_config.xtream_proxied_username
                     && credentials.last().unwrap().to_owned()
                         == xtream_config.xtream_proxied_password

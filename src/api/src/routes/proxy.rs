@@ -5,8 +5,8 @@ use rest_client::RestClient;
 use warp::{header::headers_cloned, Filter};
 
 use crate::{
-    filters::{with_config, with_db, with_rest_client},
-    handlers,
+    filters::with_proxy_handler,
+    handlers::proxy::ProxyHandler,
     models::{ApiConfiguration, Path},
 };
 
@@ -15,14 +15,14 @@ pub fn proxy_routes(
     db: Arc<DB>,
     client: Arc<RestClient>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    proxy_stream(config, db.clone(), client.clone()).or(proxy_attribute_url(db, client))
+    let handler = ProxyHandler::new(config, db, client);
+
+    proxy_stream(handler.clone()).or(proxy_attribute_url(handler))
 }
 
 /// GET /stream/{id}
 fn proxy_stream(
-    config: ApiConfiguration,
-    db: Arc<DB>,
-    client: Arc<RestClient>,
+    handler: ProxyHandler,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("stream" / u64)
         .and(warp::get())
@@ -33,20 +33,16 @@ fn proxy_stream(
             id: id.to_string(),
         })
         .and(headers_cloned())
-        .and(with_config(config))
-        .and(with_db(db))
-        .and(with_rest_client(client))
-        .and_then(handlers::proxy::proxy_stream)
+        .and(with_proxy_handler(handler))
+        .and_then(|path, headers, handler: ProxyHandler| handler.proxy_stream(path, headers))
 }
 
 /// GET /attr/{id}
 fn proxy_attribute_url(
-    db: Arc<DB>,
-    client: Arc<RestClient>,
+    handler: ProxyHandler,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("attr" / u64)
         .and(warp::get())
-        .and(with_db(db))
-        .and(with_rest_client(client))
-        .and_then(handlers::proxy::proxy_attr)
+        .and(with_proxy_handler(handler))
+        .and_then(|id, handler: ProxyHandler| handler.proxy_attr(id))
 }
