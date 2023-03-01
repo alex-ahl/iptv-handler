@@ -1,5 +1,6 @@
 use std::{convert::Infallible, sync::Arc};
 
+use ::warp::http::HeaderMap;
 use db::DB;
 use log::error;
 use rest_client::RestClient;
@@ -12,6 +13,7 @@ use crate::{
 
 pub async fn proxy_stream(
     path: Path,
+    headers: HeaderMap,
     config: ApiConfiguration,
     db: Arc<DB>,
     client: Arc<RestClient>,
@@ -19,7 +21,10 @@ pub async fn proxy_stream(
     let mut proxy_service = ProxyService::new();
     proxy_service.initialize(db, client);
 
-    let res = match proxy_service.proxy_stream(path.clone(), config).await {
+    let res = match proxy_service
+        .proxy_stream(path.clone(), headers, config)
+        .await
+    {
         Ok(res) => res,
         Err(err) => {
             error!("Failed to proxy stream with id {}, error: {}", path.id, err);

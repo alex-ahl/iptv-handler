@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use db::DB;
 use rest_client::RestClient;
-use warp::Filter;
+use warp::{header::headers_cloned, Filter};
 
 use crate::{
     filters::{with_config, with_db, with_rest_client},
@@ -32,6 +32,7 @@ fn proxy_stream(
             segment3: None,
             id: id.to_string(),
         })
+        .and(headers_cloned())
         .and(with_config(config))
         .and(with_db(db))
         .and(with_rest_client(client))

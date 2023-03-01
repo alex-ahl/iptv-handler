@@ -2,7 +2,9 @@ use std::{convert::Infallible, sync::Arc};
 
 use db::DB;
 use rest_client::RestClient;
-use warp::{filters::BoxedFilter, get, path, query, Filter, Rejection, Reply};
+use warp::{
+    filters::BoxedFilter, get, header::headers_cloned, path, query, Filter, Rejection, Reply,
+};
 
 use crate::{
     filters::{
@@ -66,6 +68,7 @@ fn stream_three_segment(
             segment3: None,
             id,
         })
+        .and(headers_cloned())
         .and(with_config(config))
         .and(with_db(db))
         .and(with_rest_client(client))
@@ -90,6 +93,7 @@ fn stream_four_segment(
             segment3: Some(seg3),
             id,
         })
+        .and(headers_cloned())
         .and(with_config(config.clone()))
         .and(with_db(db))
         .and(with_rest_client(client))

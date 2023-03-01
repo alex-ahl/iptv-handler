@@ -4,6 +4,7 @@ use db::DB;
 use log::error;
 use rest_client::RestClient;
 use warp::{
+    http::HeaderMap,
     hyper::{Body, Response, StatusCode},
     path::FullPath,
     reply::with_status,
@@ -20,6 +21,7 @@ use crate::{
 
 pub async fn stream(
     path: Path,
+    headers: HeaderMap,
     config: ApiConfiguration,
     db: Arc<DB>,
     client: Arc<RestClient>,
@@ -27,7 +29,8 @@ pub async fn stream(
     let mut xtream_service = XtreamService::new();
 
     xtream_service.initialize(config.xtream.clone(), db, client);
-    let res = match xtream_service.proxy_stream(path, config).await {
+
+    let res = match xtream_service.proxy_stream(path, headers, config).await {
         Ok(res) => res,
         Err(err) => {
             error!("Failed to proxy xtream request: {}", err);
