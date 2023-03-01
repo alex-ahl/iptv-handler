@@ -1,6 +1,6 @@
 use futures_util::Stream;
 use log::error;
-use reqwest::{Client, ClientBuilder, Error, Response, Url};
+use reqwest::{header::HeaderMap, Client, ClientBuilder, Error, Method, Response, Url};
 use warp::hyper::body::Bytes;
 
 #[derive(Clone)]
@@ -10,11 +10,29 @@ pub struct RestClient {
 
 impl RestClient {
     pub fn new() -> Self {
-        let client: Client = ClientBuilder::new().build().expect("REST client created");
+        let client: Client = ClientBuilder::new()
+            .http1_only()
+            .build()
+            .expect("REST client created");
 
         Self { client }
     }
 
+    pub async fn request(
+        &self,
+        method: Method,
+        url: Url,
+        headers: HeaderMap,
+    ) -> Result<Response, Error> {
+        let res = self
+            .client
+            .request(method, url)
+            .headers(headers)
+            .send()
+            .await?;
+
+        Ok(res)
+    }
     pub async fn get(&self, url: &Url) -> Result<Response, Error> {
         let resp = self.client.get(url.to_string()).send().await;
 
