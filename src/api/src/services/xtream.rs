@@ -44,8 +44,11 @@ pub struct XtreamService {
 
 impl XtreamService {
     pub fn new(config: ApiConfiguration, db: Arc<DB>, client: Arc<RestClient>) -> Self {
+        let mut provider_db_service = ProviderDBService::new();
+        provider_db_service.initialize_db(db.clone());
+
         XtreamService {
-            provider_db_service: ProviderDBService::new(),
+            provider_db_service,
             proxy_util: ProxyUtil::new(ResponseUtil::new(), db.clone(), client.clone()),
             response_util: ResponseUtil::new(),
             url_util: UrlUtil::new(),
