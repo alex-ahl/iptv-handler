@@ -4,18 +4,13 @@ use db::DB;
 use rest_client::RestClient;
 use warp::{header::headers_cloned, Filter};
 
-use crate::{
-    filters::with_proxy_handler,
-    handlers::proxy::ProxyHandler,
-    models::{ApiConfiguration, Path},
-};
+use crate::{filters::with_proxy_handler, handlers::proxy::ProxyHandler, models::Path};
 
 pub fn proxy_routes(
-    config: ApiConfiguration,
     db: Arc<DB>,
     client: Arc<RestClient>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    let handler = ProxyHandler::new(config, db, client);
+    let handler = ProxyHandler::new(db, client);
 
     proxy_stream(handler.clone()).or(proxy_attribute_url(handler))
 }

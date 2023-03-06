@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
-use anyhow::{bail, Context, Error};
-use reqwest::Method;
+use anyhow::{Context, Error};
+use reqwest::{Method, Url};
 use rest_client::RestClient;
 use warp::{
     http::HeaderMap,
     hyper::{Body, Response},
 };
 
-use db::{services::provider::ProviderDBService, CRUD, DB};
+use db::{CRUD, DB};
 
 use crate::{
-    models::{ApiConfiguration, Path},
+    models::Path,
     utils::{response::ResponseUtil, url::UrlUtil},
 };
 
@@ -19,17 +19,15 @@ use crate::{
 pub struct ProxyService {
     response_util: ResponseUtil,
     url_util: UrlUtil,
-    config: ApiConfiguration,
     db: Arc<DB>,
     client: Arc<RestClient>,
 }
 
 impl ProxyService {
-    pub fn new(config: ApiConfiguration, db: Arc<DB>, client: Arc<RestClient>) -> Self {
+    pub fn new(db: Arc<DB>, client: Arc<RestClient>) -> Self {
         ProxyService {
             response_util: ResponseUtil::new(),
             url_util: UrlUtil::new(),
-            config,
             db,
             client,
         }
@@ -42,44 +40,27 @@ impl ProxyService {
     ) -> Result<Response<Body>, Error> {
         let mut tx = self.db.pool.begin().await?;
 
-        let mut provider_db_service = ProviderDBService::new();
-        provider_db_service.initialize_db(self.db.clone());
+        let track = self.url_util.parse_track(path.id)?;
 
-        match provider_db_service
-            .get_latest_provider_entry(self.config.m3u_url.as_str())
+        let extinf = self
+            .db
+            .extinf
+            .get(&mut tx, track.id)
             .await
-        {
-            Some(latest_provider_entry) => {
-                let m3u = self
-                    .db
-                    .m3u
-                    .get(&mut tx, latest_provider_entry.id.clone())
-                    .await
-                    .context(format!(
-                        "Unable to get m3u entry with id: {}",
-                        latest_provider_entry.id
-                    ))?;
+            .context(format!("Unable to get ext entry with ID: {}", track.id))?;
 
-                let url = self.url_util.compose_proxy_stream_url(
-                    path.clone(),
-                    m3u.clone(),
-                    None,
-                    None,
-                )?;
+        let url = Url::parse(&extinf.url)?;
 
-                let res = self.client.request(Method::GET, url, headers).await?;
+        let res = self.client.request(Method::GET, url, headers).await?;
 
-                let builder = self.response_util.compose_base_response(&res).await?;
+        let builder = self.response_util.compose_base_response(&res).await?;
 
-                let res = self
-                    .response_util
-                    .compose_proxy_stream_response(res, builder)
-                    .await
-                    .context("error proxying stream")?;
+        let res = self
+            .response_util
+            .compose_proxy_stream_response(res, builder)
+            .await
+            .context("error proxying stream")?;
 
-                return Ok(res);
-            }
-            None => bail!("Unable to init provider service"),
-        }
+        return Ok(res);
     }
 }

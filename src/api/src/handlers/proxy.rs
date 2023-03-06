@@ -7,7 +7,7 @@ use rest_client::RestClient;
 use warp::hyper::{Body, Response};
 
 use crate::{
-    models::{ApiConfiguration, Path},
+    models::Path,
     services::proxy::ProxyService,
     utils::{proxy::ProxyUtil, response::ResponseUtil},
 };
@@ -19,9 +19,9 @@ pub struct ProxyHandler {
 }
 
 impl ProxyHandler {
-    pub fn new(config: ApiConfiguration, db: Arc<DB>, client: Arc<RestClient>) -> Self {
+    pub fn new(db: Arc<DB>, client: Arc<RestClient>) -> Self {
         ProxyHandler {
-            proxy_service: ProxyService::new(config, db.clone(), client.clone()),
+            proxy_service: ProxyService::new(db.clone(), client.clone()),
             proxy_util: ProxyUtil::new(ResponseUtil::new(), db, client),
         }
     }
