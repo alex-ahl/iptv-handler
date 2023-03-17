@@ -16,7 +16,7 @@ Exclude unwanted channels based on group and generate a new M3U file with proxie
 | PROXY_DOMAIN            | -           | Yes      | string   | Domain on which the app is running - to proxy m3u requests. (Example: localhost:3000)  |
 | ENV                     | Development | No       | string   | Set environment Development or Production.                                             |
 | PORT                    | 3001        | No       | number   | Port to run on (Default 3001)                                                          |
-| RUST_LOG                | -           | No       | string   | Log level (warn,server=warn,iptv=info,api=warn,rest-client=warn )                      |
+| RUST_LOG                | info        | Yes      | string   | Log level (warn,server=warn,iptv=info,api=warn rest-client=warn)                       |
 | XTREAM_ENABLED          | false       | No       | boolean  | Enable Xtream                                                                          |
 | XTREAM_BASE_DOMAIN      | -           | No       | string   | Xtream provider base domain                                                            |
 | XTREAM_USERNAME         | -           | No       | string   | Xtream provider username                                                               |

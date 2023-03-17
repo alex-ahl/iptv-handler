@@ -45,6 +45,7 @@ services:
     command: cargo watch --delay 4 --why -x run
     tty: true # color terminal output
     environment:
+      RUST_LOG: "info" # example: warn,server=info,iptv=info,api=debug,rest-client=debug,db=info
       CARGO_TARGET_DIR: "/tmp/target" # VirtioFS files not found fix
     ports:
       - "3001:3001"
@@ -57,7 +58,6 @@ services:
       migration:
         condition: "service_completed_successfully"
 volumes:
-  #   app_sync:
   db:
 networks:
   iptvhandler:
