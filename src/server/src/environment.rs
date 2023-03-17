@@ -5,7 +5,7 @@ use url::Url;
 
 pub fn init_env() -> Configuration {
     let mut env = from_env::<Configuration>().expect("Correct environment variables not provided");
-    env.xtream_config.xtream_proxied_domain = Some(env.proxy_domain.clone());
+    env.xtream_proxied_domain = Some(env.proxy_domain.clone());
 
     env
 }
@@ -14,8 +14,15 @@ pub fn map_api_configuration(config: Configuration) -> ApiConfiguration {
     ApiConfiguration {
         m3u_url: config.m3u,
         group_excludes: config.group_excludes,
-        xtream_enabled: config.xtream_enabled,
-        xtream: config.xtream_config,
+        xtream: XtreamConfig {
+            xtream_enabled: config.xtream_enabled,
+            xtream_base_domain: config.xtream_base_domain,
+            xtream_username: config.xtream_username,
+            xtream_password: config.xtream_password,
+            xtream_proxied_domain: config.xtream_proxied_domain,
+            xtream_proxied_username: config.xtream_proxied_username,
+            xtream_proxied_password: config.xtream_proxied_password,
+        },
     }
 }
 
@@ -38,13 +45,29 @@ pub struct Configuration {
 
     #[serde(default = "group_excludes")]
     pub group_excludes: Vec<String>,
+
     pub proxy_domain: String,
 
     #[serde(default = "xtream_enabled")]
     pub xtream_enabled: bool,
 
-    #[serde(default = "xtream_config", flatten)]
-    pub xtream_config: XtreamConfig,
+    #[serde(default = "xtream_base_domain")]
+    xtream_base_domain: String,
+
+    #[serde(default = "xtream_username")]
+    xtream_username: String,
+
+    #[serde(default = "xtream_password")]
+    xtream_password: String,
+
+    #[serde(default = "xtream_proxied_domain")]
+    xtream_proxied_domain: Option<String>,
+
+    #[serde(default = "xtream_proxied_username")]
+    xtream_proxied_username: String,
+
+    #[serde(default = "xtream_proxied_password")]
+    xtream_proxied_password: String,
 }
 
 fn default_port() -> u16 {
@@ -71,16 +94,27 @@ fn group_excludes() -> Vec<String> {
     vec![]
 }
 
-pub fn xtream_config() -> XtreamConfig {
-    XtreamConfig {
-        xtream_base_domain: String::new(),
-        xtream_username: String::new(),
-        xtream_password: String::new(),
+fn xtream_base_domain() -> String {
+    String::from("")
+}
 
-        xtream_proxied_domain: None,
-        xtream_proxied_username: String::new(),
-        xtream_proxied_password: String::new(),
-    }
+fn xtream_username() -> String {
+    String::from("")
+}
+
+fn xtream_password() -> String {
+    String::from("")
+}
+
+fn xtream_proxied_domain() -> Option<String> {
+    None
+}
+fn xtream_proxied_username() -> String {
+    String::from("")
+}
+
+fn xtream_proxied_password() -> String {
+    String::from("")
 }
 
 #[derive(Deserialize, Debug, PartialEq, Clone)]

@@ -24,7 +24,6 @@ pub struct ResponseData<T> {
 pub struct ApiConfiguration {
     pub m3u_url: Url,
     pub group_excludes: Vec<String>,
-    pub xtream_enabled: bool,
     pub xtream: XtreamConfig,
 }
 

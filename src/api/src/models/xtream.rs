@@ -32,6 +32,8 @@ pub struct OptionalParams {
 
 #[derive(Debug, Clone, Deserialize, Default, PartialEq)]
 pub struct XtreamConfig {
+    pub xtream_enabled: bool,
+
     pub xtream_base_domain: String,
     pub xtream_username: String,
     pub xtream_password: String,
@@ -44,7 +46,7 @@ pub struct XtreamConfig {
 impl From<XtreamConfig> for iptv::models::XtreamConfig {
     fn from(config: XtreamConfig) -> Self {
         iptv::models::XtreamConfig {
-            enabled: true,
+            enabled: config.xtream_enabled,
             base_domain: config.xtream_base_domain,
             username: config.xtream_username,
             password: config.xtream_password,
