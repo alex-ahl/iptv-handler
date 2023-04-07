@@ -74,7 +74,6 @@ networks:
 ```
 
 ## TODO
-- Proxy external links in XtreamCodes metadata. For example on player_api.php?username=username&password=password&action=get_series
 - Output correct m3u files for XtreamCodes endpoints get.php?username=usernamee&password=password&type=m3u_plus&output=m3u8/ts/rmtm
 - Add streaming HLS (.m3u8) support
 

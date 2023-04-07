@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::{Context, Error};
 use db::{CRUD, DB};
+use log::error;
 use reqwest::Url;
 use rest_client::RestClient;
 use serde::de::DeserializeOwned;
@@ -38,7 +39,13 @@ impl ProxyUtil {
         let headers = res.headers().clone();
         let status_code = res.status().clone();
 
-        let data = res.json::<T>().await.context("deserialize json body")?;
+        let data = match res.text().await {
+            Ok(data) => serde_json::from_str::<T>(&data).context("deserializing json to type T")?,
+            Err(err) => {
+                error!("{}", err);
+                serde_json::from_str("{}").unwrap()
+            }
+        };
 
         Ok(ResponseData {
             data,
@@ -66,6 +73,31 @@ impl ProxyUtil {
     }
 
     pub async fn proxy_attribute(&self, id: u64) -> Result<Response<Body>, Error> {
+        let mut tx = self.db.pool.begin().await?;
+
+        let attr = self
+            .db
+            .attribute
+            .get(&mut tx, id)
+            .await
+            .context(format!("Unable to get attribute entry with ID: {}", id))?;
+
+        let url = Url::parse(&attr.value)?;
+
+        let res = self.client.get(&url).await.context("error on proxy")?;
+
+        let builder = self.response_util.compose_base_response(&res).await?;
+
+        let res = self
+            .response_util
+            .compose_byte_response(res, builder)
+            .await
+            .context("error proxying attribute")?;
+
+        return Ok(res);
+    }
+
+    pub async fn proxy_xtream_url(&self, id: u64) -> Result<Response<Body>, Error> {
         let mut tx = self.db.pool.begin().await?;
 
         let attr = self

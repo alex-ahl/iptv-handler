@@ -1,4 +1,5 @@
 use reqwest::{header::HeaderMap, Url};
+use serde::{Deserialize, Serialize};
 use warp::{hyper::StatusCode, reject::Reject};
 
 use self::xtream::XtreamConfig;
@@ -13,10 +14,13 @@ pub struct Invalid {
 }
 impl Reject for Invalid {}
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ResponseData<T> {
     pub data: T,
+
+    #[serde(skip)]
     pub headers: HeaderMap,
+    #[serde(skip)]
     pub status_code: StatusCode,
 }
 

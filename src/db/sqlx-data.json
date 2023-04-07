@@ -1,5 +1,15 @@
 {
   "db": "MySQL",
+  "01823f9e5cec08cd0c3233043d14ad6955b7f7e0e408fe8fa936f78deecd43cb": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "delete xtream_metadata from xtream_metadata where m3u_id = ?"
+  },
   "0471e50b8433805f0bfee080143d4b7ef46a2d24b9472213a8677be7fa256206": {
     "describe": {
       "columns": [],
@@ -336,6 +346,80 @@
     },
     "query": "select id, name, source, groups, channels, created_at, modified_at from provider where source = ?"
   },
+  "27fa7efb88ce912de8b3053ecca3e44fd9da77f7decca614fc85a40af6a9b009": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "insert into xtream_metadata (metadata, metadata_type, m3u_id) values (?, ?, ?)"
+  },
+  "2b3998a02059e3f0f7507eb85ea4c4282d226dcc148aabf2cb7a89c5f2c79e43": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "metadata",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 4294967295,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "metadata_type",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "m3u_id",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select id, metadata, metadata_type, m3u_id from xtream_metadata where id = ?"
+  },
   "38e0532347b4a52e1b51a6544177f78e2bfc03b70cba5a54e616ef1c9ad3b80f": {
     "describe": {
       "columns": [
@@ -549,6 +633,26 @@
     },
     "query": "insert into m3u (provider_id, domain, port, created_at, modified_at) values (?, ?, ?, ?, ?)"
   },
+  "5289be7a5662f427c5f235beae4fa0141c5a4a55b444f28d56c1ebe24848198f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "delete xtream_url from xtream_url where m3u_id = ?"
+  },
+  "58f4f806c91bf9c725d096e048089bfdd389b559caf28aaa5c3385bf06c0c325": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "insert into xtream_url (url, m3u_id) values (?, ?)"
+  },
   "59eea809dcf51907054c7ddf63fccaa2b22179c6cfbee18756b76dd78ade900f": {
     "describe": {
       "columns": [
@@ -612,6 +716,70 @@
       }
     },
     "query": "select * from attribute where extinf_id = ?"
+  },
+  "6d542edfa4ddd8220699713a38236dcd00ac4be2f034b7d51faff03db2223770": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "metadata",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 4294967295,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "metadata_type",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "m3u_id",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "select * from xtream_metadata where m3u_id = ? and metadata_type = ?"
   },
   "737b1cc5d40123eb0c8a01514a048263f978b686b0ec5b146825aa59efeaf04a": {
     "describe": {
@@ -842,6 +1010,16 @@
       }
     },
     "query": "select id, name, source, groups, channels, created_at, modified_at from provider"
+  },
+  "9421b4b6daa7ff6a6b38bd2793ab857a0239292a78cb2602df687f6eaa54f09b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "delete from xtream_metadata where id = ?"
   },
   "9bccae44f8607ad7a3310b9435a061ab96854deb6983f33346f17830d491b84c": {
     "describe": {
@@ -1243,6 +1421,16 @@
     },
     "query": "select id, name, source, groups, channels, created_at, modified_at from provider where id = ?"
   },
+  "ec20b8807fd0f5c1cf2a27af494ca70bfa4c69a4c32047598b9c2fc712a8cd4b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "delete from xtream_url where id = ?"
+  },
   "f18a62cde957d8fd6fca3edb4e792a7d839314f840a02efe674d751ce6e68769": {
     "describe": {
       "columns": [
@@ -1358,6 +1546,57 @@
       }
     },
     "query": "select id, name, url, track_id, prefix, extension, exclude as `exclude: bool`, m3u_id from extinf where m3u_id = ?"
+  },
+  "f54f637fdbfc506ad35c3f93e523b316f9c5593f19873c51445b95ac1e23d152": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "url",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "m3u_id",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 40
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select id, url, m3u_id from xtream_url where id = ?"
   },
   "fa71c2de7698ac87cd6cd8bd0c9386b1de785eee1fbcf44eb952a9d8534b707e": {
     "describe": {

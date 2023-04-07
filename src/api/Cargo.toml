@@ -21,6 +21,8 @@ tokio-util = { version = "0.7.3", features = ["io"] }
 reqwest = { version = "0.11.12", features = ["stream", "json"] } 
 strum = { version = "0.24", features = ["derive"] }
 strum_macros = "0.24"
+serde_yaml = "0.8.26"
+async-recursion = "1.0.4"
 rest-client = { path = "../rest-client" }
 db = { path = "../db" }
 iptv = { path = "../iptv" }

@@ -52,7 +52,7 @@ impl XtreamHandler {
         let res = match self.xtream_service.proxy_xmltv(path.as_str()).await {
             Ok(res) => res,
             Err(err) => {
-                error!("Failed to proxy xtream request: {}", err);
+                error!("Failed to proxy xmltv {}", err);
                 with_status("INTERNAL SERVER ERROR", StatusCode::INTERNAL_SERVER_ERROR)
                     .into_response()
             }
@@ -68,7 +68,7 @@ impl XtreamHandler {
         let res = match self.xtream_service.proxy_type_output(type_output).await {
             Ok(res) => res,
             Err(err) => {
-                error!("Failed to proxy xtream request: {}", err);
+                error!("Failed to proxy get_type_output: {}", err);
                 with_status("INTERNAL SERVER ERROR", StatusCode::INTERNAL_SERVER_ERROR)
                     .into_response()
             }
@@ -90,7 +90,7 @@ impl XtreamHandler {
         {
             Ok(res) => res,
             Err(err) => {
-                error!("Failed to proxy xtream request: {}", err);
+                error!("Failed to proxy player_api_action request: {}", err);
                 with_status("INTERNAL SERVER ERROR", StatusCode::INTERNAL_SERVER_ERROR)
                     .into_response()
             }
@@ -103,7 +103,20 @@ impl XtreamHandler {
         let res = match self.xtream_service.proxy_login(path.as_str()).await {
             Ok(res) => res,
             Err(err) => {
-                error!("Failed to proxy xtream request: {}", err);
+                error!("Failed to proxy player_api_login request: {}", err);
+                with_status("INTERNAL SERVER ERROR", StatusCode::INTERNAL_SERVER_ERROR)
+                    .into_response()
+            }
+        };
+
+        Ok(res)
+    }
+
+    pub async fn url_proxy(self, id: u64) -> Result<Response<Body>, Infallible> {
+        let res = match self.xtream_service.proxy_url(id).await {
+            Ok(res) => res,
+            Err(err) => {
+                error!("Failed to proxy url: {}", err);
                 with_status("INTERNAL SERVER ERROR", StatusCode::INTERNAL_SERVER_ERROR)
                     .into_response()
             }

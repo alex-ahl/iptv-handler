@@ -1,13 +1,18 @@
 use anyhow::{bail, ensure, Context, Error};
+use async_recursion::async_recursion;
 use db::{
+    models::{XtreamMetadataRequest, XtreamUrlRequest},
     services::{group::GroupDBService, provider::ProviderDBService},
-    CRUD, DB,
+    Connection, CRUD, DB,
 };
 
 use log::info;
 use reqwest::Method;
 use rest_client::RestClient;
 use serde::{de::DeserializeOwned, Serialize};
+use serde_json::{from_str, to_string};
+use serde_yaml::{from_value, to_value, Mapping, Sequence, Value};
+use std::fmt::Write;
 use std::sync::Arc;
 use url::Url;
 use warp::{
@@ -21,8 +26,8 @@ use crate::{
     handlers::m3u::get_latest_m3u_file,
     models::{
         xtream::{
-            Action, ActionTypes, Categories, LiveStream, Login, OptionalParams, Series, TypeOutput,
-            VodStream, XtreamUrl,
+            Action, ActionTypes, Categories, LiveStream, Login, OptionalParams, Series, SeriesInfo,
+            TypeOutput, VodStream, XtreamMetadataType, XtreamUrl,
         },
         ApiConfiguration, Path,
     },
@@ -170,13 +175,22 @@ impl XtreamService {
 
         let response = match ActionTypes::from_str(action.as_str()) {
             Ok(ActionTypes::GetLiveStreams) => {
-                self.proxy_streams::<LiveStream>(urls.original, "live")
-                    .await?
+                self.proxy_streams::<LiveStream>(
+                    urls.original,
+                    "live",
+                    XtreamMetadataType::LiveStream,
+                )
+                .await?
             }
             Ok(ActionTypes::GetVodStreams) => {
-                self.proxy_streams::<VodStream>(urls.original, "movie")
-                    .await?
+                self.proxy_streams::<VodStream>(
+                    urls.original,
+                    "movie",
+                    XtreamMetadataType::VodStream,
+                )
+                .await?
             }
+            Ok(ActionTypes::GetSeriesInfo) => self.proxy_series_info(urls.original).await?,
             Ok(ActionTypes::GetSeries) => self.proxy_series(urls.original).await?,
             Ok(ActionTypes::GetLiveCategories) => self.proxy_categories(urls.original).await?,
             Ok(ActionTypes::GetVodCategories) => self.proxy_categories(urls.original).await?,
@@ -234,15 +248,19 @@ impl XtreamService {
         }
     }
 
-    async fn proxy_streams<T>(&self, proxy_url: Url, prefix: &str) -> Result<Response<Body>, Error>
+    async fn proxy_streams<T>(
+        &self,
+        proxy_url: Url,
+        prefix: &str,
+        metadata_type: XtreamMetadataType,
+    ) -> Result<Response<Body>, Error>
     where
         T: DeserializeOwned + Send + Serialize + Clone + HasId,
     {
         let mut json = self
             .proxy_util
             .proxy_request_json::<Vec<T>>(&proxy_url)
-            .await
-            .context("getting streams json")?;
+            .await?;
 
         match self
             .provider_db_service
@@ -259,15 +277,22 @@ impl XtreamService {
                     )
                     .await?;
 
-                let mut json_filtered = vec![];
+                let excluded_extinfs_ids = excluded_extinfs_ids
+                    .iter()
+                    .map(|extinf| serde_json::to_value(extinf).unwrap_or_default())
+                    .collect();
 
-                for stream in &mut json.data {
-                    if !excluded_extinfs_ids.contains(&stream.get_set_id().to_string()) {
-                        json_filtered.push(stream.to_owned())
-                    }
-                }
+                let processed_json = self
+                    .process_json_entries(
+                        json.data,
+                        excluded_extinfs_ids,
+                        latest_provider_entry.id,
+                        None,
+                        metadata_type,
+                    )
+                    .await?;
 
-                json.data = json_filtered;
+                json.data = processed_json;
 
                 let res = self
                     .response_util
@@ -296,22 +321,29 @@ impl XtreamService {
                 let mut group_service = GroupDBService::new();
                 group_service.initialize_db(self.db.clone());
 
-                let excluded_groups = group_service
+                let exclude_groups = group_service
                     .get_excluded_groups(latest_provider_entry.id)
                     .await?;
 
-                let mut json_filtered = vec![];
+                let exclude_groups: Vec<serde_json::Value> = exclude_groups
+                    .iter()
+                    .map(|group| {
+                        serde_json::to_value(group.xtream_cat_id.unwrap_or_default())
+                            .unwrap_or_default()
+                    })
+                    .collect();
 
-                for series in json.data {
-                    if excluded_groups.clone().into_iter().find(|cat| {
-                        series.category_id == cat.xtream_cat_id.unwrap_or_default().to_string()
-                    }) == None
-                    {
-                        json_filtered.push(series)
-                    }
-                }
+                let processed_json = self
+                    .process_json_entries(
+                        json.data,
+                        exclude_groups,
+                        latest_provider_entry.id,
+                        None,
+                        XtreamMetadataType::Series,
+                    )
+                    .await?;
 
-                json.data = json_filtered;
+                json.data = processed_json;
 
                 let res = self
                     .response_util
@@ -321,6 +353,282 @@ impl XtreamService {
                 Ok(res)
             }
             None => bail!("No provider entry found"),
+        }
+    }
+
+    async fn proxy_series_info(&self, proxy_url: Url) -> Result<Response<Body>, Error> {
+        let mut json = self
+            .proxy_util
+            .proxy_request_json::<SeriesInfo>(&proxy_url)
+            .await?;
+
+        match self
+            .provider_db_service
+            .get_latest_provider_entry(self.config.m3u_url.as_str())
+            .await
+        {
+            Some(latest_provider_entry) => {
+                let mut group_service = GroupDBService::new();
+                group_service.initialize_db(self.db.clone());
+
+                let processed_json = self
+                    .process_json_entries(
+                        vec![json.data],
+                        vec![],
+                        latest_provider_entry.id,
+                        Some(true),
+                        XtreamMetadataType::SeriesInfo,
+                    )
+                    .await?;
+
+                json.data = processed_json.first().unwrap().to_owned();
+
+                let res = self
+                    .response_util
+                    .compose_json_response(json)
+                    .context("composing series json response")?;
+
+                Ok(res)
+            }
+            None => bail!("No provider entry found"),
+        }
+    }
+
+    pub async fn proxy_url(&self, id: u64) -> Result<Response<Body>, Error> {
+        let mut tx = self.db.pool.begin().await.context("begin transaction")?;
+
+        let model = self.db.xtream_url.get(&mut tx, id).await?;
+
+        tx.commit().await.context("committing transaction")?;
+
+        let response = self
+            .proxy_util
+            .proxy_request_bytes(&Url::parse(model.url.as_str())?)
+            .await?;
+
+        Ok(response)
+    }
+
+    async fn process_json_entries<T>(
+        &self,
+        json: Vec<T>,
+        exclude_ids: Vec<serde_json::Value>,
+        m3u_id: u64,
+        force_fetch: Option<bool>,
+        metadata_type: XtreamMetadataType,
+    ) -> Result<Vec<T>, Error>
+    where
+        T: DeserializeOwned + Send + Serialize + Clone + HasId,
+    {
+        let mut json_filtered = vec![];
+        let mut base_proxy_url = String::new();
+
+        let proxy_domain = self
+            .config
+            .xtream
+            .xtream_proxied_domain
+            .as_ref()
+            .context("getting xtream_proxied_domain")?;
+
+        write!(base_proxy_url, "http://{}/url/", proxy_domain)?;
+
+        let mut tx = self.db.pool.begin().await.context("begin transaction")?;
+        let latest_xtream_m3u_id = self.db.xtream_url.get_latest_m3u_id(&mut tx).await?;
+        tx.commit().await.context("committing transaction")?;
+
+        let mut tx = self.db.pool.begin().await.context("begin transaction")?;
+
+        if latest_xtream_m3u_id.unwrap_or_default() != m3u_id || force_fetch.unwrap_or_default() {
+            for mut entry in json {
+                let id = self
+                    .match_json_values(entry.get_set_id())
+                    .context("matching entry json value")?;
+
+                if exclude_ids
+                    .clone()
+                    .into_iter()
+                    .find(|val| self.match_json_values(val).unwrap_or_default() == id)
+                    == None
+                {
+                    let yaml = to_value(&entry).context("serde_yaml::to_value not working")?;
+
+                    let res = self
+                        .process_json_entry(yaml, &mut base_proxy_url.clone(), m3u_id, &mut tx)
+                        .await
+                        .context("proxying urls")?;
+
+                    let json = from_str::<T>(&res).context("json string to struct")?;
+
+                    json_filtered.push(json);
+                }
+
+                let _ = self
+                    .db
+                    .xtream_metadata
+                    .insert(
+                        &mut tx,
+                        XtreamMetadataRequest {
+                            metadata: to_string(&json_filtered)
+                                .context("serializing xtream metadata json")?,
+                            metadata_type: metadata_type.to_string(),
+                            m3u_id,
+                        },
+                    )
+                    .await?;
+            }
+        } else {
+            let res = self
+                .db
+                .xtream_metadata
+                .get_latest_by_type_and_m3u_id(&mut tx, metadata_type.to_string(), m3u_id)
+                .await?;
+
+            json_filtered = from_str::<Vec<T>>(&res.metadata).context("json string to struct")?;
+        }
+
+        tx.commit().await.context("committing transaction")?;
+
+        Ok(json_filtered)
+    }
+
+    fn match_json_values(&self, value: &serde_json::Value) -> Result<String, Error> {
+        match value {
+            serde_json::Value::Number(value) => Ok(value.to_string()),
+            serde_json::Value::String(value) => Ok(value.to_string()),
+            _ => Ok(String::from_str("")?),
+        }
+    }
+
+    async fn process_json_entry(
+        &self,
+        value: Value,
+        proxy_url: &mut String,
+        m3u_id: u64,
+        tx: &mut Connection,
+    ) -> Result<String, Error> {
+        let mut mapping = Mapping::new();
+
+        match value {
+            Value::Mapping(val) => {
+                self.map_mapping(val, &mut mapping, proxy_url, m3u_id, tx)
+                    .await?
+            }
+            _ => (),
+        }
+
+        let json_value: serde_json::Value =
+            from_value(serde_yaml::Value::Mapping(mapping)).context("yaml to json cast failed")?;
+
+        let json = to_string(&json_value).context("value to json string")?;
+
+        Ok(json)
+    }
+
+    #[async_recursion]
+    async fn map_mapping(
+        &self,
+        mapping: Mapping,
+        mut_mapping: &mut Mapping,
+        proxy_url: &mut String,
+        m3u_id: u64,
+        tx: &mut Connection,
+    ) -> Result<(), Error> {
+        for (_, (key, value)) in mapping.iter().enumerate() {
+            match value {
+                Value::Sequence(value) => {
+                    self.map_sequence(
+                        value.to_owned(),
+                        key.to_owned(),
+                        mut_mapping,
+                        proxy_url,
+                        m3u_id,
+                        tx,
+                    )
+                    .await?;
+                }
+                Value::Mapping(value) => {
+                    let mut mapping = Mapping::new();
+
+                    self.map_mapping(value.to_owned(), &mut mapping, proxy_url, m3u_id, tx)
+                        .await?;
+
+                    mut_mapping.insert(key.to_owned(), serde_yaml::Value::Mapping(mapping));
+                }
+                _ => {
+                    let value = self.try_proxify_entry(value, m3u_id, proxy_url, tx).await?;
+                    mut_mapping.insert(key.to_owned(), value);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn map_sequence(
+        &self,
+        sequence: Sequence,
+        key: Value,
+        mapping: &mut Mapping,
+        proxy_url: &mut String,
+        m3u_id: u64,
+        tx: &mut Connection,
+    ) -> Result<(), Error> {
+        let mut vec = vec![];
+
+        for entry in sequence {
+            let value = self
+                .try_proxify_entry(&entry, m3u_id, proxy_url, tx)
+                .await?;
+
+            vec.push(value);
+        }
+
+        mapping.insert(key, to_value(vec).context("vec to yaml cast failed")?);
+
+        Ok(())
+    }
+
+    async fn try_proxify_entry(
+        &self,
+        value: &Value,
+        m3u_id: u64,
+        proxy_url: &mut String,
+        tx: &mut Connection,
+    ) -> Result<Value, Error> {
+        match Url::parse(value.as_str().unwrap_or_default()) {
+            Ok(url) => {
+                if url.scheme().starts_with("http") {
+                    let id = self
+                        .db
+                        .xtream_url
+                        .insert(
+                            tx,
+                            XtreamUrlRequest {
+                                url: url.to_string(),
+                                m3u_id,
+                            },
+                        )
+                        .await?;
+
+                    let pattern = "/url/";
+
+                    if !proxy_url.ends_with(pattern) {
+                        let offset = proxy_url.find(pattern).unwrap_or(proxy_url.len());
+                        proxy_url.truncate(offset);
+
+                        write!(proxy_url, "{}", pattern)?;
+                    }
+
+                    write!(proxy_url, "{}", id)?;
+
+                    let proxy_url = &to_value(proxy_url).context("proxified url to yaml failed")?;
+
+                    return Ok(proxy_url.to_owned());
+                } else {
+                    return Ok(value.to_owned());
+                }
+            }
+            Err(_) => return Ok(value.to_owned()),
         }
     }
 
