@@ -1,7 +1,7 @@
 use anyhow::{bail, ensure, Context, Error};
 use async_recursion::async_recursion;
 use db::{
-    models::{XtreamMetadataRequest, XtreamUrlRequest},
+    models::XtreamUrlRequest,
     services::{group::GroupDBService, provider::ProviderDBService},
     Connection, CRUD, DB,
 };
@@ -27,7 +27,7 @@ use crate::{
     models::{
         xtream::{
             Action, ActionTypes, Categories, LiveStream, Login, OptionalParams, Series, SeriesInfo,
-            TypeOutput, VodStream, XtreamMetadataType, XtreamUrl,
+            TypeOutput, VodStream, XtreamUrl,
         },
         ApiConfiguration, Path,
     },
@@ -175,20 +175,12 @@ impl XtreamService {
 
         let response = match ActionTypes::from_str(action.as_str()) {
             Ok(ActionTypes::GetLiveStreams) => {
-                self.proxy_streams::<LiveStream>(
-                    urls.original,
-                    "live",
-                    XtreamMetadataType::LiveStream,
-                )
-                .await?
+                self.proxy_streams::<LiveStream>(urls.original, "live")
+                    .await?
             }
             Ok(ActionTypes::GetVodStreams) => {
-                self.proxy_streams::<VodStream>(
-                    urls.original,
-                    "movie",
-                    XtreamMetadataType::VodStream,
-                )
-                .await?
+                self.proxy_streams::<VodStream>(urls.original, "movie")
+                    .await?
             }
             Ok(ActionTypes::GetSeriesInfo) => self.proxy_series_info(urls.original).await?,
             Ok(ActionTypes::GetSeries) => self.proxy_series(urls.original).await?,
@@ -248,12 +240,7 @@ impl XtreamService {
         }
     }
 
-    async fn proxy_streams<T>(
-        &self,
-        proxy_url: Url,
-        prefix: &str,
-        metadata_type: XtreamMetadataType,
-    ) -> Result<Response<Body>, Error>
+    async fn proxy_streams<T>(&self, proxy_url: Url, prefix: &str) -> Result<Response<Body>, Error>
     where
         T: DeserializeOwned + Send + Serialize + Clone + HasId,
     {
@@ -283,13 +270,7 @@ impl XtreamService {
                     .collect();
 
                 let processed_json = self
-                    .process_json_entries(
-                        json.data,
-                        excluded_extinfs_ids,
-                        latest_provider_entry.id,
-                        None,
-                        metadata_type,
-                    )
+                    .process_json_entries(json.data, excluded_extinfs_ids, latest_provider_entry.id)
                     .await?;
 
                 json.data = processed_json;
@@ -334,13 +315,7 @@ impl XtreamService {
                     .collect();
 
                 let processed_json = self
-                    .process_json_entries(
-                        json.data,
-                        exclude_groups,
-                        latest_provider_entry.id,
-                        None,
-                        XtreamMetadataType::Series,
-                    )
+                    .process_json_entries(json.data, exclude_groups, latest_provider_entry.id)
                     .await?;
 
                 json.data = processed_json;
@@ -372,13 +347,7 @@ impl XtreamService {
                 group_service.initialize_db(self.db.clone());
 
                 let processed_json = self
-                    .process_json_entries(
-                        vec![json.data],
-                        vec![],
-                        latest_provider_entry.id,
-                        Some(true),
-                        XtreamMetadataType::SeriesInfo,
-                    )
+                    .process_json_entries(vec![json.data], vec![], latest_provider_entry.id)
                     .await?;
 
                 json.data = processed_json.first().unwrap().to_owned();
@@ -414,8 +383,6 @@ impl XtreamService {
         json: Vec<T>,
         exclude_ids: Vec<serde_json::Value>,
         m3u_id: u64,
-        force_fetch: Option<bool>,
-        metadata_type: XtreamMetadataType,
     ) -> Result<Vec<T>, Error>
     where
         T: DeserializeOwned + Send + Serialize + Clone + HasId,
@@ -433,57 +400,29 @@ impl XtreamService {
         write!(base_proxy_url, "http://{}/url/", proxy_domain)?;
 
         let mut tx = self.db.pool.begin().await.context("begin transaction")?;
-        let latest_xtream_m3u_id = self.db.xtream_url.get_latest_m3u_id(&mut tx).await?;
-        tx.commit().await.context("committing transaction")?;
 
-        let mut tx = self.db.pool.begin().await.context("begin transaction")?;
+        for mut entry in json {
+            let id = self
+                .match_json_values(entry.get_set_id())
+                .context("matching entry json value")?;
 
-        if latest_xtream_m3u_id.unwrap_or_default() != m3u_id || force_fetch.unwrap_or_default() {
-            for mut entry in json {
-                let id = self
-                    .match_json_values(entry.get_set_id())
-                    .context("matching entry json value")?;
+            if exclude_ids
+                .clone()
+                .into_iter()
+                .find(|val| self.match_json_values(val).unwrap_or_default() == id)
+                == None
+            {
+                let yaml = to_value(&entry).context("serde_yaml::to_value not working")?;
 
-                if exclude_ids
-                    .clone()
-                    .into_iter()
-                    .find(|val| self.match_json_values(val).unwrap_or_default() == id)
-                    == None
-                {
-                    let yaml = to_value(&entry).context("serde_yaml::to_value not working")?;
+                let res = self
+                    .process_json_entry(yaml, &mut base_proxy_url.clone(), m3u_id, &mut tx)
+                    .await
+                    .context("proxying urls")?;
 
-                    let res = self
-                        .process_json_entry(yaml, &mut base_proxy_url.clone(), m3u_id, &mut tx)
-                        .await
-                        .context("proxying urls")?;
+                let json = from_str::<T>(&res).context("json string to struct")?;
 
-                    let json = from_str::<T>(&res).context("json string to struct")?;
-
-                    json_filtered.push(json);
-                }
-
-                let _ = self
-                    .db
-                    .xtream_metadata
-                    .insert(
-                        &mut tx,
-                        XtreamMetadataRequest {
-                            metadata: to_string(&json_filtered)
-                                .context("serializing xtream metadata json")?,
-                            metadata_type: metadata_type.to_string(),
-                            m3u_id,
-                        },
-                    )
-                    .await?;
+                json_filtered.push(json);
             }
-        } else {
-            let res = self
-                .db
-                .xtream_metadata
-                .get_latest_by_type_and_m3u_id(&mut tx, metadata_type.to_string(), m3u_id)
-                .await?;
-
-            json_filtered = from_str::<Vec<T>>(&res.metadata).context("json string to struct")?;
         }
 
         tx.commit().await.context("committing transaction")?;
