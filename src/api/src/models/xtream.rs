@@ -165,7 +165,7 @@ pub struct Category {
 pub struct SeriesInfo {
     #[serde(skip)]
     pub id: Value,
-    pub info: Info,
+    pub info: SeriesInfoInfo,
 
     #[serde(flatten)]
     pub json: Option<Value>,
@@ -173,7 +173,29 @@ pub struct SeriesInfo {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Info {
+pub struct SeriesInfoInfo {
+    #[serde(rename = "category_id")]
+    pub category_id: Option<Value>,
+
+    #[serde(flatten)]
+    pub json: Option<Value>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VodInfo {
+    #[serde(skip)]
+    pub id: Value,
+
+    pub movie_data: MovieData,
+
+    #[serde(flatten)]
+    pub json: Option<Value>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MovieData {
     #[serde(rename = "category_id")]
     pub category_id: Option<Value>,
 
@@ -188,6 +210,7 @@ pub enum ActionTypes {
     GetLiveCategories,
     GetVodStreams,
     GetSeriesInfo,
+    GetVodInfo,
     GetVodCategories,
     GetSeries,
     GetSeriesCategories,

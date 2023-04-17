@@ -27,7 +27,7 @@ use crate::{
     models::{
         xtream::{
             Action, ActionTypes, Categories, LiveStream, Login, OptionalParams, Series, SeriesInfo,
-            TypeOutput, VodStream, XtreamUrl,
+            TypeOutput, VodInfo, VodStream, XtreamUrl,
         },
         ApiConfiguration, Path,
     },
@@ -182,7 +182,8 @@ impl XtreamService {
                 self.proxy_streams::<VodStream>(urls.original, "movie")
                     .await?
             }
-            Ok(ActionTypes::GetSeriesInfo) => self.proxy_series_info(urls.original).await?,
+            Ok(ActionTypes::GetSeriesInfo) => self.proxy_info::<SeriesInfo>(urls.original).await?,
+            Ok(ActionTypes::GetVodInfo) => self.proxy_info::<VodInfo>(urls.original).await?,
             Ok(ActionTypes::GetSeries) => self.proxy_series(urls.original).await?,
             Ok(ActionTypes::GetLiveCategories) => self.proxy_categories(urls.original).await?,
             Ok(ActionTypes::GetVodCategories) => self.proxy_categories(urls.original).await?,
@@ -331,7 +332,10 @@ impl XtreamService {
         }
     }
 
-    async fn proxy_series_info(&self, proxy_url: Url) -> Result<Response<Body>, Error> {
+    async fn proxy_info<T>(&self, proxy_url: Url) -> Result<Response<Body>, Error>
+    where
+        T: DeserializeOwned + Send + Serialize + Clone + HasId,
+    {
         let mut json = self
             .proxy_util
             .proxy_request_json::<SeriesInfo>(&proxy_url)

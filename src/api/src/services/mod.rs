@@ -2,7 +2,7 @@ use std::convert::TryInto;
 
 use serde_json::Value;
 
-use crate::models::xtream::{LiveStream, Series, SeriesInfo, VodStream};
+use crate::models::xtream::{LiveStream, Series, SeriesInfo, VodInfo, VodStream};
 
 pub(crate) mod provider;
 pub(crate) mod proxy;
@@ -36,6 +36,13 @@ impl HasId for Series {
 impl HasId for SeriesInfo {
     fn get_set_id(&mut self) -> &Value {
         self.id = self.info.category_id.clone().unwrap_or_default();
+        &self.id
+    }
+}
+
+impl HasId for VodInfo {
+    fn get_set_id(&mut self) -> &Value {
+        self.id = self.movie_data.category_id.clone().unwrap_or_default();
         &self.id
     }
 }
