@@ -126,15 +126,23 @@ impl ProviderDBService {
         if let Some(ref db) = self.db {
             let mut tx = db.pool.begin().await?;
 
+            let deleted_xtream_urls = db.xtream_url.delete_by_m3u_id(&mut tx, id).await;
+            let deleted_xtream_metadata = db.xtream_metadata.delete_by_m3u_id(&mut tx, id).await;
             let deleted_attributes = db.attribute.delete_by_provider_id(&mut tx, id).await;
             let deleted_extinfs = db.extinf.delete_by_provider_id(&mut tx, id).await;
             let deleted_m3us = db.m3u.delete_by_provider_id(&mut tx, id).await;
             let deleted_groups = db.group.delete_by_provider_id(&mut tx, id).await;
             let deleted_provider = db.provider.delete(&mut tx, id).await;
-            let deleted_xtream_urls = db.xtream_url.delete_by_m3u_id(&mut tx, id).await;
-            let deleted_xtream_metadata = db.xtream_metadata.delete_by_m3u_id(&mut tx, id).await;
 
             match deleted_attributes
+                .and_then(|aff_rows| {
+                    info!("Deleting {} xtream_url entries", aff_rows);
+                    deleted_xtream_urls
+                })
+                .and_then(|aff_rows| {
+                    info!("Deleting {} xtream_metadata entries", aff_rows);
+                    deleted_xtream_metadata
+                })
                 .and_then(|aff_rows| {
                     info!("Deleting {} attributes", aff_rows);
                     deleted_extinfs
@@ -150,14 +158,6 @@ impl ProviderDBService {
                 .and_then(|aff_rows| {
                     info!("Deleting {} m3u entries", aff_rows);
                     deleted_provider
-                })
-                .and_then(|aff_rows| {
-                    info!("Deleting {} xtream_url entries", aff_rows);
-                    deleted_xtream_urls
-                })
-                .and_then(|aff_rows| {
-                    info!("Deleting {} xtream_metadata entries", aff_rows);
-                    deleted_xtream_metadata
                 }) {
                 Err(err) => {
                     error!("Failed to delete provider\n{}\nRolling back..", err);
