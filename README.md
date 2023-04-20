@@ -1,8 +1,10 @@
 # Overview
 
-Exclude unwanted channels based on group and generate a new M3U file with proxied streams and attributes. Updates the playlist on specified hourly frequency. Streams get proxied through a webserver running on the app. XtreamCodes support (currently work in progress).
+Exclude unwanted channels based on group and generate a new M3U file with proxied streams and attributes. Updates the playlist on specified hourly frequency. Streams get proxied through a webserver running on the app. XtreamCodes support
 
 ## Setup
+### _Basics_
+Get the generated .m3u file at <code>/m3u</code>
 
 ### _Settable environment variables_
 
@@ -23,6 +25,7 @@ Exclude unwanted channels based on group and generate a new M3U file with proxie
 | XTREAM_PASSWORD         | -           | No       | string   | Xtream provider username                                                               |
 | XTREAM_PROXIED_USERNAME | -           | No       | string   | Proxied Xtream username                                                                |
 | XTREAM_PROXIED_PASSWORD | -           | No       | string   | Proxied Xtream password                                                                |    
+<br/>
 
 ### _Development_
 
@@ -31,6 +34,8 @@ Set required environment variables in and ```.env ``` file and then run `docker-
 This will fire up a MariaDB container instance and create a new DB.
 Which in turn will create tables and basic data using sql files in the `server -> db -> migrations` folder.
 <br/>
+<br/>
+
 
 ### _Production_
 
@@ -75,8 +80,8 @@ networks:
 
 ## TODO
 - Output correct m3u files for XtreamCodes endpoints get.php?username=usernamee&password=password&type=m3u_plus&output=m3u8/ts/rmtm
-- Add streaming HLS (.m3u8) support
-
+<br/>
+<br/>
 
 ## DB
 
