@@ -156,4 +156,24 @@ impl UrlUtil {
 
         Ok(())
     }
+
+    pub fn compose_final_response_url(&self, response_url: &Url) -> Result<String, Error> {
+        let mut url = String::new();
+
+        write!(url, "{}://", response_url.scheme()).context("writing scheme")?;
+
+        if let Some(host) = response_url.host_str() {
+            write!(url, "{}", host).context("writing host")?;
+        }
+
+        if let Some(port) = response_url.port() {
+            write!(url, ":{}", port).context("writing host scheme")?;
+        }
+
+        Ok(url)
+    }
+
+    pub fn is_hls_stream(&self, url: String) -> bool {
+        url.ends_with(".m3u8")
+    }
 }

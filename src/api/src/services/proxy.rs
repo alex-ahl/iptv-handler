@@ -8,7 +8,7 @@ use warp::{
     hyper::{Body, Response},
 };
 
-use db::{CRUD, DB};
+use db::{models::HlsUrlRequest, Connection, CRUD, DB};
 
 use crate::{
     models::Path,
@@ -55,6 +55,39 @@ impl ProxyService {
 
         let builder = self.response_util.compose_base_response(&res).await?;
 
+        if self.url_util.is_hls_stream(extinf.url) {
+            self.persist_final_response_url(res.url(), &mut tx).await?;
+        }
+
+        let res = self
+            .response_util
+            .compose_proxy_stream_response(res, builder)
+            .await
+            .context("error proxying stream")?;
+
+        tx.commit().await?;
+
+        return Ok(res);
+    }
+
+    pub async fn proxy_hls(&self, path: Path, headers: HeaderMap) -> Result<Response<Body>, Error> {
+        let mut tx = self.db.pool.begin().await?;
+
+        let host = self.db.hls_url.get_latest(&mut tx).await?;
+
+        tx.commit().await?;
+
+        let url = Url::parse(&format!(
+            "{}/hls/{}/{}",
+            host.url,
+            path.segment1.unwrap(),
+            path.id
+        ))?;
+
+        let res = self.client.request(Method::GET, url, headers).await?;
+
+        let builder = self.response_util.compose_base_response(&res).await?;
+
         let res = self
             .response_util
             .compose_proxy_stream_response(res, builder)
@@ -62,5 +95,19 @@ impl ProxyService {
             .context("error proxying stream")?;
 
         return Ok(res);
+    }
+
+    pub async fn persist_final_response_url(
+        &self,
+        url: &Url,
+        tx: &mut Connection,
+    ) -> Result<(), Error> {
+        self.db.hls_url.truncate(tx).await?;
+
+        let url = self.url_util.compose_final_response_url(url)?;
+
+        self.db.hls_url.insert(tx, HlsUrlRequest { url }).await?;
+
+        Ok(())
     }
 }

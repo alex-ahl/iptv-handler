@@ -346,6 +346,44 @@
     },
     "query": "select id, name, source, groups, channels, created_at, modified_at from provider where source = ?"
   },
+  "236cfeb88c813cabd68cb1afefacebaf8732b229c9c190ed3ad77e7fb0178862": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "url",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "select id, url from hls_url"
+  },
   "27fa7efb88ce912de8b3053ecca3e44fd9da77f7decca614fc85a40af6a9b009": {
     "describe": {
       "columns": [],
@@ -642,6 +680,16 @@
       }
     },
     "query": "delete xtream_url from xtream_url where m3u_id = ?"
+  },
+  "57b60c03cbcdc60b1ece57c38d1319b1acd6ba5f9d741d73a0fd93391508bca2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "truncate table hls_url"
   },
   "58f4f806c91bf9c725d096e048089bfdd389b559caf28aaa5c3385bf06c0c325": {
     "describe": {
@@ -1431,6 +1479,16 @@
     },
     "query": "delete from xtream_url where id = ?"
   },
+  "ef4600dc4a811d5d659744110292e98fa7c428a20c8b81d9072ea6124100d20f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "delete from hls_url where id = ?"
+  },
   "f18a62cde957d8fd6fca3edb4e792a7d839314f840a02efe674d751ce6e68769": {
     "describe": {
       "columns": [
@@ -1547,6 +1605,16 @@
     },
     "query": "select id, name, url, track_id, prefix, extension, exclude as `exclude: bool`, m3u_id from extinf where m3u_id = ?"
   },
+  "f53f6e2742d5ecbf5baa390112a84ba0e7636b8f9a59ae8ee252ed1fd8ad73a2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "insert into hls_url (url) values (?)"
+  },
   "f54f637fdbfc506ad35c3f93e523b316f9c5593f19873c51445b95ac1e23d152": {
     "describe": {
       "columns": [
@@ -1597,6 +1665,44 @@
       }
     },
     "query": "select id, url, m3u_id from xtream_url where id = ?"
+  },
+  "f82a9c098b7fbe9916bb6ad96de3fac4fd7c7c2c16562be3dd6c9b37cffedbcf": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "url",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 262140,
+            "type": "Blob"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select id, url from hls_url where id = ?"
   },
   "fa71c2de7698ac87cd6cd8bd0c9386b1de785eee1fbcf44eb952a9d8534b707e": {
     "describe": {

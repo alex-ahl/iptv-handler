@@ -1,7 +1,7 @@
 pub mod models;
 pub mod services;
 use log::LevelFilter;
-use models::{Attribute, ExtInf, Group, M3u, Provider, XtreamMetadata, XtreamUrl};
+use models::{Attribute, ExtInf, Group, HlsUrl, M3u, Provider, XtreamMetadata, XtreamUrl};
 use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
 use sqlx::{migrate, ConnectOptions, Error, MySql, MySqlConnection, Pool};
 use std::fmt::Debug;
@@ -50,6 +50,7 @@ pub struct DB {
     pub group: Group,
     pub xtream_url: XtreamUrl,
     pub xtream_metadata: XtreamMetadata,
+    pub hls_url: HlsUrl,
 }
 
 pub async fn init_db(pool: ConnectionPool) -> DB {
@@ -63,5 +64,6 @@ pub async fn init_db(pool: ConnectionPool) -> DB {
         group: Group {},
         xtream_url: XtreamUrl {},
         xtream_metadata: XtreamMetadata {},
+        hls_url: HlsUrl {},
     }
 }

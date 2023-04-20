@@ -58,4 +58,22 @@ impl ProxyHandler {
 
         Ok(res)
     }
+
+    pub async fn proxy_hls(
+        self,
+        path: Path,
+        headers: HeaderMap,
+    ) -> Result<Response<Body>, Infallible> {
+        let res = match self.proxy_service.proxy_hls(path.clone(), headers).await {
+            Ok(res) => res,
+            Err(err) => {
+                error!("Failed to proxy stream with id {}, error: {}", path.id, err);
+                Response::builder()
+                    .status(500)
+                    .body(Body::from(format!("Error on stream proxy {}", path.id)))
+                    .unwrap_or_default()
+            }
+        };
+        Ok(res)
+    }
 }
