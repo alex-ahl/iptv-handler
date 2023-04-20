@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
 use anyhow::{Context, Error};
+use db::{CRUD, DB};
 use reqwest::{Method, Url};
 use rest_client::RestClient;
 use warp::{
     http::HeaderMap,
     hyper::{Body, Response},
 };
-
-use db::{models::HlsUrlRequest, Connection, CRUD, DB};
 
 use crate::{
     models::Path,
@@ -56,7 +55,9 @@ impl ProxyService {
         let builder = self.response_util.compose_base_response(&res).await?;
 
         if self.url_util.is_hls_stream(extinf.url) {
-            self.persist_final_response_url(res.url(), &mut tx).await?;
+            self.url_util
+                .persist_final_response_url(res.url(), self.db.clone())
+                .await?;
         }
 
         let res = self
@@ -95,19 +96,5 @@ impl ProxyService {
             .context("error proxying stream")?;
 
         return Ok(res);
-    }
-
-    pub async fn persist_final_response_url(
-        &self,
-        url: &Url,
-        tx: &mut Connection,
-    ) -> Result<(), Error> {
-        self.db.hls_url.truncate(tx).await?;
-
-        let url = self.url_util.compose_final_response_url(url)?;
-
-        self.db.hls_url.insert(tx, HlsUrlRequest { url }).await?;
-
-        Ok(())
     }
 }

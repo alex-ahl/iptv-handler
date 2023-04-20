@@ -1,9 +1,12 @@
 use crate::models::{Path, Track};
 use anyhow::{Context, Error};
-use db::models::M3uModel;
+use db::{
+    models::{HlsUrlRequest, M3uModel},
+    CRUD, DB,
+};
 use iptv::m3u::parser::{parse_extension, parse_track_id};
 use reqwest::Url;
-use std::fmt::Write;
+use std::{fmt::Write, sync::Arc};
 
 #[derive(Default, Debug, Clone, PartialEq, Copy)]
 pub struct UrlUtil;
@@ -175,5 +178,17 @@ impl UrlUtil {
 
     pub fn is_hls_stream(&self, url: String) -> bool {
         url.ends_with(".m3u8")
+    }
+
+    pub async fn persist_final_response_url(&self, url: &Url, db: Arc<DB>) -> Result<(), Error> {
+        let mut tx = db.pool.begin().await?;
+
+        db.hls_url.truncate(&mut tx).await?;
+
+        let url = self.compose_final_response_url(url)?;
+
+        db.hls_url.insert(&mut tx, HlsUrlRequest { url }).await?;
+
+        Ok(())
     }
 }

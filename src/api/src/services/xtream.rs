@@ -93,7 +93,16 @@ impl XtreamService {
                     Some(self.config.xtream.xtream_password.clone()),
                 )?;
 
-                let res = self.client.request(Method::GET, url, headers).await?;
+                let res = self
+                    .client
+                    .request(Method::GET, url.clone(), headers)
+                    .await?;
+
+                if self.url_util.is_hls_stream(url.to_string()) {
+                    self.url_util
+                        .persist_final_response_url(res.url(), self.db.clone())
+                        .await?;
+                }
 
                 let builder = self.response_util.compose_base_response(&res).await?;
 
