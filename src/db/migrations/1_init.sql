@@ -68,6 +68,11 @@ CREATE TABLE IF NOT EXISTS hls_url (
     `url` TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS xmltv_url (
+     id BIGINT UNSIGNED PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    `url` TEXT NOT NULL
+);
+
 -- INSERT INTO provider VALUES (1, "temp", "http://example.com/playlist.m3u", 0, 0, NOW(), NOW());
 -- INSERT INTO m3u VALUES (1, 1, NOW(), NOW());
 -- INSERT INTO extinf VALUES (1, "Channel name 1", "https://google.se", 1);

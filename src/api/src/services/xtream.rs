@@ -6,6 +6,9 @@ use db::{
     Connection, CRUD, DB,
 };
 
+use std::sync::Arc;
+use url::Url;
+
 use log::info;
 use reqwest::Method;
 use rest_client::RestClient;
@@ -13,11 +16,10 @@ use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{from_str, to_string};
 use serde_yaml::{from_value, to_value, Mapping, Sequence, Value};
 use std::fmt::Write;
-use std::sync::Arc;
-use url::Url;
 use warp::{
     http::HeaderMap,
     hyper::{Body, Response},
+    Reply,
 };
 
 use std::str::FromStr;
@@ -31,7 +33,7 @@ use crate::{
         },
         ApiConfiguration, Path,
     },
-    utils::{proxy::ProxyUtil, response::ResponseUtil, url::UrlUtil},
+    utils::{proxy::ProxyUtil, response::ResponseUtil, url::UrlUtil, xml::XmlUtil},
 };
 
 use super::HasId;
@@ -42,6 +44,7 @@ pub struct XtreamService {
     proxy_util: ProxyUtil,
     response_util: ResponseUtil,
     url_util: UrlUtil,
+    xml_util: XmlUtil,
     config: ApiConfiguration,
     db: Arc<DB>,
     client: Arc<RestClient>,
@@ -57,6 +60,7 @@ impl XtreamService {
             proxy_util: ProxyUtil::new(ResponseUtil::new(), db.clone(), client.clone()),
             response_util: ResponseUtil::new(),
             url_util: UrlUtil::new(),
+            xml_util: XmlUtil::new(db.clone()),
             config,
             db,
             client,
@@ -116,19 +120,6 @@ impl XtreamService {
             }
             None => bail!("Unable to init provider service"),
         }
-    }
-
-    pub async fn proxy_xmltv(&self, full_path: &str) -> Result<Response<Body>, Error> {
-        let cred_query = self.compose_credentials_query_string();
-        let url = self.compose_xmltv_url(full_path, cred_query)?;
-
-        let response = self.proxy_util.proxy_request_bytes(&url.original).await?;
-
-        let status_code = response.status();
-
-        info!("[{}] {} => {}", status_code, url.proxied, url.original);
-
-        Ok(response)
     }
 
     pub async fn proxy_type_output(
@@ -380,6 +371,21 @@ impl XtreamService {
         let mut tx = self.db.pool.begin().await.context("begin transaction")?;
 
         let model = self.db.xtream_url.get(&mut tx, id).await?;
+
+        tx.commit().await.context("committing transaction")?;
+
+        let response = self
+            .proxy_util
+            .proxy_request_bytes(&Url::parse(model.url.as_str())?)
+            .await?;
+
+        Ok(response)
+    }
+
+    pub async fn proxy_xmltv_url(&self, id: u64) -> Result<Response<Body>, Error> {
+        let mut tx = self.db.pool.begin().await.context("begin transaction")?;
+
+        let model = self.db.xmltv_url.get(&mut tx, id).await?;
 
         tx.commit().await.context("committing transaction")?;
 
@@ -691,5 +697,37 @@ impl XtreamService {
         let urls = XtreamUrl { original, proxied };
 
         Ok(urls)
+    }
+
+    pub async fn proxy_xmltv(&self, full_path: &str) -> Result<Response<Body>, Error> {
+        let cred_query = self.compose_credentials_query_string();
+        let url = self.compose_xmltv_url(full_path, cred_query)?;
+
+        let response = self.client.get(&url.original).await?;
+        let status_code = response.status();
+
+        let xml = response.text().await?;
+
+        let mut tx = self.db.pool.begin().await?;
+        self.db.xmltv_url.truncate(&mut tx).await?;
+        tx.commit().await?;
+
+        let bytes = self
+            .xml_util
+            .proxify_xmltv(
+                xml.as_str(),
+                self.config
+                    .xtream
+                    .xtream_proxied_domain
+                    .clone()
+                    .unwrap_or_default(),
+            )
+            .await?;
+
+        let response = Response::builder().body(bytes)?.into_response();
+
+        info!("[{}] {} => {}", status_code, url.proxied, url.original);
+
+        Ok(response)
     }
 }

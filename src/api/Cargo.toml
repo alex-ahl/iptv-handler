@@ -23,6 +23,7 @@ strum = { version = "0.24", features = ["derive"] }
 strum_macros = "0.24"
 serde_yaml = "0.8.26"
 async-recursion = "1.0.4"
+quick-xml = { version = "0.28.2", features = ["async-tokio", "escape-html"] }
 rest-client = { path = "../rest-client" }
 db = { path = "../db" }
 iptv = { path = "../iptv" }

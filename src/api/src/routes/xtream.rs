@@ -38,6 +38,7 @@ pub fn xtream_routes(
         .or(xmltv(get_param_auth, handler.clone()))
         .or(player_api_login(handler.clone(), player_base_url))
         .or(url_proxy(handler.clone()))
+        .or(xmltv_url_proxy(handler.clone()))
         .or(stream_three_segment(get_path_auth.clone(), handler.clone()))
         .or(stream_four_segment(get_path_auth, handler.clone()))
         .recover(handle_rejection)
@@ -139,4 +140,13 @@ fn url_proxy(
         .and(get())
         .and(with_xtream_handler(handler))
         .and_then(|id, handler: XtreamHandler| handler.url_proxy(id))
+}
+
+fn xmltv_url_proxy(
+    handler: XtreamHandler,
+) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+    warp::path!("xmltv" / u64)
+        .and(get())
+        .and(with_xtream_handler(handler))
+        .and_then(|id, handler: XtreamHandler| handler.xmltv_url_proxy(id))
 }

@@ -124,4 +124,17 @@ impl XtreamHandler {
 
         Ok(res)
     }
+
+    pub async fn xmltv_url_proxy(self, id: u64) -> Result<Response<Body>, Infallible> {
+        let res = match self.xtream_service.proxy_xmltv_url(id).await {
+            Ok(res) => res,
+            Err(err) => {
+                error!("Failed to proxy url: {}", err);
+                with_status("INTERNAL SERVER ERROR", StatusCode::INTERNAL_SERVER_ERROR)
+                    .into_response()
+            }
+        };
+
+        Ok(res)
+    }
 }
