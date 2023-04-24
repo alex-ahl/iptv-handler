@@ -651,15 +651,20 @@ impl XtreamService {
     }
 
     fn compose_login_url(&self, full_path: &str) -> Result<XtreamUrl, Error> {
-        let query = Some(format!(
+        let original_query = Some(format!(
             "?username={}&password={}",
             self.config.xtream.xtream_username, self.config.xtream.xtream_password
+        ));
+
+        let proxied_query = Some(format!(
+            "?username={}&password={}",
+            self.config.xtream.xtream_proxied_username, self.config.xtream.xtream_proxied_password
         ));
 
         let original = self.url_util.parse_url(
             self.config.xtream.xtream_base_domain.clone(),
             full_path,
-            query.clone(),
+            original_query.clone(),
         )?;
 
         let proxied = self.url_util.parse_url(
@@ -669,7 +674,7 @@ impl XtreamService {
                 .clone()
                 .unwrap_or_default(),
             full_path,
-            query,
+            proxied_query,
         )?;
 
         let urls = XtreamUrl { original, proxied };
