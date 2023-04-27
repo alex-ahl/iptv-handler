@@ -4,7 +4,7 @@ use db::DB;
 use warp::{get, path, post, Filter, Rejection, Reply};
 
 use crate::{
-    filters::{json_body, with_db},
+    filters::{json_body, with_db, with_output},
     handlers,
 };
 
@@ -19,6 +19,7 @@ pub fn m3u_routes(db: Arc<DB>) -> impl Filter<Extract = impl Reply, Error = Reje
 fn get_latest_m3u_file() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     path!("m3u")
         .and(get())
+        .and(with_output())
         .and_then(handlers::m3u::get_latest_m3u_file)
 }
 
@@ -31,6 +32,7 @@ fn get_m3u_from_disc() -> impl Filter<Extract = impl Reply, Error = Rejection> +
 fn get_m3u_file_exist() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     path!("m3u-exist")
         .and(get())
+        .and(with_output())
         .and_then(handlers::m3u::m3u_file_exist)
 }
 

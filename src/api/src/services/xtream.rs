@@ -28,8 +28,8 @@ use crate::{
     handlers::m3u::get_latest_m3u_file,
     models::{
         xtream::{
-            Action, ActionTypes, Categories, LiveStream, Login, OptionalParams, Series, SeriesInfo,
-            TypeOutput, VodInfo, VodStream, XtreamUrl,
+            Action, ActionTypes, Categories, LiveStream, Login, OptionalParams, Output, Series,
+            SeriesInfo, TypeOutput, VodInfo, VodStream, XtreamUrl,
         },
         ApiConfiguration, Path,
     },
@@ -126,14 +126,25 @@ impl XtreamService {
         &self,
         TypeOutput { type_, output }: TypeOutput,
     ) -> Result<Response<Body>, Error> {
+        let output = Output::from_str(&output)?;
+
         ensure!(
-            type_ == "m3u_plus" && (output == "m3u8" || output == "ts" || output == "rmtp"),
-            "only m3u8, ts or rmtm supported"
+            type_ == "m3u_plus"
+                && (output == Output::M3u8 || output == Output::Ts || output == Output::Custom),
+            "only m3u8 and ts supported"
         );
 
-        let response = get_latest_m3u_file()
-            .await
-            .context("error getting m3u file")?;
+        let response = match output {
+            Output::Ts => get_latest_m3u_file(Output::Ts)
+                .await
+                .context("error getting ts m3u file")?,
+            Output::M3u8 => get_latest_m3u_file(Output::M3u8)
+                .await
+                .context("error getting m3u8 m3u file")?,
+            _ => get_latest_m3u_file(Output::Custom)
+                .await
+                .context("error getting custom m3u file")?,
+        };
 
         Ok(response)
     }

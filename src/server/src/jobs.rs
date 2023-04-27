@@ -6,6 +6,7 @@ use api::{
 };
 use chrono::Duration;
 use db::{models::ProviderModel, DB};
+use iptv::models::IptvConfiguration;
 use log::{debug, error, info};
 use rest_client::RestClient;
 use tokio::fs;
@@ -16,13 +17,19 @@ use crate::{app::try_provider_update, environment::Configuration, tools::deseria
 pub(crate) fn init_jobs(
     config: Configuration,
     api_config: ApiConfiguration,
+    iptv_config: IptvConfiguration,
     db: Arc<DB>,
     client: Arc<RestClient>,
 ) {
     let schedule = JobScheduler::new().unwrap();
 
-    let update_provider_job =
-        create_update_provider_job(config.clone(), api_config, db.clone(), client.clone());
+    let update_provider_job = create_update_provider_job(
+        config.clone(),
+        api_config,
+        iptv_config,
+        db.clone(),
+        client.clone(),
+    );
     let remove_obsolete_m3u_files = create_remove_obsolete_m3u_files_job();
     let purge_obsolete_provider_entries =
         create_purge_obsolete_provider_entries(config, db, client);
@@ -47,6 +54,7 @@ pub(crate) fn init_jobs(
 fn create_update_provider_job(
     config: Configuration,
     api_config: ApiConfiguration,
+    iptv_config: IptvConfiguration,
     db: Arc<DB>,
     client: Arc<RestClient>,
 ) -> Job {
@@ -59,10 +67,11 @@ fn create_update_provider_job(
             let client = client.clone();
             let config = config.clone();
             let api_config = api_config.clone();
+            let iptv_config = iptv_config.clone();
 
             Box::pin(async move {
                 debug!("Running provider update job");
-                try_provider_update(config, api_config, db, client).await;
+                try_provider_update(config, api_config, iptv_config, db, client).await;
             })
         },
     )
@@ -94,27 +103,41 @@ fn create_remove_obsolete_m3u_files_job() -> Job {
                     }
                 }
 
-                files.sort();
+                let file_starts: Vec<&str> = vec!["custom", "ts", "m3u8"];
 
-                let number_of_files = files.len();
+                for starts_with in file_starts {
+                    let mut files: Vec<String> = files
+                        .clone()
+                        .iter()
+                        .filter(|file| file.starts_with(starts_with))
+                        .map(|file| file.to_string())
+                        .collect();
 
-                if number_of_files > 2 {
-                    let number_of_files_to_delete = number_of_files - (number_of_files - 2);
+                    files.sort();
 
-                    let files_to_delete = files
-                        .into_iter()
-                        .take(number_of_files_to_delete)
-                        .collect::<Vec<String>>();
+                    let number_of_files = files.len();
 
-                    for file_name in files_to_delete {
-                        let path = Path::new(&file_name);
-                        fs::remove_file(path).await.unwrap_or_default();
-                        debug!("Removed file {}", file_name);
+                    if number_of_files > 2 {
+                        let number_of_files_to_delete = number_of_files - (number_of_files - 2);
+
+                        let files_to_delete = files
+                            .into_iter()
+                            .take(number_of_files_to_delete)
+                            .collect::<Vec<String>>();
+
+                        for file_name in files_to_delete {
+                            let path = Path::new(&file_name);
+                            fs::remove_file(path).await.unwrap_or_default();
+                            debug!("Removed file {}", file_name);
+                        }
+
+                        info!(
+                            "Deleted {} obsolete {} m3u files",
+                            number_of_files_to_delete, starts_with
+                        );
+                    } else {
+                        info!("No {} m3u files eligible for removal", starts_with);
                     }
-
-                    info!("Deleted {} obsolete m3u files", number_of_files_to_delete);
-                } else {
-                    info!("No m3u files eligible for removal",);
                 }
             })
         })

@@ -1,9 +1,9 @@
 # Overview
 
-Exclude unwanted channels based on group and generate a new M3U file with proxied streams and attributes. Updates the playlist on specified hourly frequency. Streams get proxied through a webserver running on the app. XtreamCodes support
+Exclude unwanted channels based on group and generate a new M3U file with proxied streams and attributes. Updates the playlist on specified hourly frequency. Streams get proxied through a webserver running on the app. Support for XtreamCodes.
 
 ## Setup
-### _Basics_
+### General
 Get the generated .m3u file at <code>/m3u</code>
 
 ### _Settable environment variables_
@@ -77,11 +77,6 @@ networks:
   db:
     external: true
 ```
-
-## TODO
-- Output correct m3u files for XtreamCodes endpoints get.php?username=usernamee&password=password&type=m3u_plus&output=m3u8/ts/rmtm
-<br/>
-<br/>
 
 ## DB
 

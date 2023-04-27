@@ -231,3 +231,11 @@ pub struct XtreamUrl {
     pub original: Url,
     pub proxied: Url,
 }
+
+#[derive(Debug, Eq, PartialEq, Display, EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum Output {
+    Ts,
+    M3u8,
+    Custom,
+}

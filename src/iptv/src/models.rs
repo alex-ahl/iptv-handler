@@ -26,3 +26,23 @@ pub struct XtreamConfig {
     pub username: String,
     pub password: String,
 }
+
+#[derive(PartialEq, Clone, Copy)]
+pub enum M3uType {
+    Ts,
+    M3u8,
+    Custom,
+}
+
+impl Default for M3uType {
+    fn default() -> Self {
+        M3uType::Custom
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct IptvConfiguration {
+    pub proxy_domain: String,
+    pub xtream_username: String,
+    pub xtream_password: String,
+}

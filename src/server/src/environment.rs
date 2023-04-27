@@ -1,5 +1,6 @@
 use api::models::{xtream::XtreamConfig, ApiConfiguration};
 use envy::from_env;
+use iptv::models::IptvConfiguration;
 use serde::Deserialize;
 use url::Url;
 
@@ -23,6 +24,14 @@ pub fn map_api_configuration(config: Configuration) -> ApiConfiguration {
             xtream_proxied_username: config.xtream_proxied_username,
             xtream_proxied_password: config.xtream_proxied_password,
         },
+    }
+}
+
+pub fn map_iptv_configuration(config: Configuration) -> IptvConfiguration {
+    IptvConfiguration {
+        proxy_domain: config.xtream_proxied_domain.unwrap_or_default(),
+        xtream_username: config.xtream_proxied_username,
+        xtream_password: config.xtream_proxied_password,
     }
 }
 

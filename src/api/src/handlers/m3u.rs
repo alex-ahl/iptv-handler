@@ -17,10 +17,10 @@ use warp::{
     Reply,
 };
 
-use crate::models::provider::CreateM3uApiModel;
+use crate::models::{provider::CreateM3uApiModel, xtream::Output};
 
-pub async fn get_latest_m3u_file() -> Result<Response, Infallible> {
-    let path = get_latest_m3u_path().await;
+pub async fn get_latest_m3u_file(output: Output) -> Result<Response, Infallible> {
+    let path = get_latest_m3u_path(output).await;
 
     let response = match File::open(path).await {
         Ok(file) => {
@@ -51,7 +51,7 @@ pub async fn get_latest_m3u_file() -> Result<Response, Infallible> {
     Ok(response)
 }
 
-async fn get_latest_m3u_path() -> PathBuf {
+async fn get_latest_m3u_path(output: Output) -> PathBuf {
     let mut dir = read_dir(".").await.unwrap();
 
     let mut files: Vec<DirEntry> = vec![];
@@ -64,7 +64,13 @@ async fn get_latest_m3u_path() -> PathBuf {
             .unwrap_or_default()
             .to_owned();
 
-        if extension == "m3u" {
+        let matches_output = file
+            .path()
+            .to_str()
+            .unwrap_or_default()
+            .starts_with(format!("./{}", &output.to_string()).as_str());
+
+        if extension == "m3u" && matches_output {
             files.push(file)
         }
     }
@@ -101,8 +107,8 @@ pub async fn serve_file_by_file_name(file_name: String) -> Result<Response, Infa
     Ok(response)
 }
 
-pub async fn m3u_file_exist() -> Result<Response, Infallible> {
-    let path = get_latest_m3u_path().await;
+pub async fn m3u_file_exist(output: Output) -> Result<Response, Infallible> {
+    let path = get_latest_m3u_path(output).await;
 
     let res = match File::open(path).await {
         Ok(_) => warp::hyper::Response::builder()
@@ -128,7 +134,7 @@ pub async fn create_m3u(req: CreateM3uApiModel, db: Arc<DB>) -> Result<Response,
     provider.initialize_db(db);
 
     if let Ok(provider) = provider.get_provider(req.provider_id).await {
-        if let Err(err) = create_m3u_file(provider, req.proxy_domain).await {
+        if let Err(err) = create_m3u_file(provider, req.iptv_config).await {
             error!(".m3u file created failed with {}", err);
             return Ok(error);
         }

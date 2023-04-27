@@ -57,6 +57,9 @@ pub struct ExtInfApiModel {
     pub exclude: bool,
     pub m3u_id: Option<u64>,
     pub attributes: Option<Vec<AttributeModel>>,
+    pub track_id: String,
+    pub prefix: Option<String>,
+    pub extension: Option<String>,
 }
 
 impl ProviderDBService {
@@ -107,6 +110,9 @@ impl ProviderDBService {
                     exclude: extinf.exclude.unwrap_or_default(),
                     m3u_id: extinf.m3u_id,
                     attributes: Some(attr.unwrap()),
+                    track_id: extinf.track_id.unwrap_or_default(),
+                    prefix: extinf.prefix,
+                    extension: extinf.extension,
                 });
             }
 

@@ -6,12 +6,12 @@ use api::{
         m3u::m3u_file_exist,
         provider::{create_provider, get_provider_entries_by_url, provider_exists},
     },
-    models::{provider::CreateProviderRequestApiModel, ApiConfiguration},
+    models::{provider::CreateProviderRequestApiModel, xtream::Output, ApiConfiguration},
 };
 use chrono::{Duration, NaiveDateTime, Utc};
 use db::DB;
 use db::{models::ProviderModel, services::provider::ProviderDBService};
-use iptv::m3u::builder::create_m3u_file;
+use iptv::{m3u::builder::create_m3u_file, models::IptvConfiguration};
 use log::{debug, error, info};
 use rest_client::RestClient;
 use url::Url;
@@ -25,22 +25,24 @@ use crate::{
 pub async fn init_app(
     config: Configuration,
     api_config: ApiConfiguration,
+    iptv_config: IptvConfiguration,
     db: Arc<DB>,
     client: Arc<RestClient>,
 ) {
     if is_existing_provider(&config.m3u, db.clone(), client.clone()).await {
-        try_provider_update(config, api_config, db.clone(), client.clone()).await;
+        try_provider_update(config, api_config, iptv_config, db.clone(), client.clone()).await;
     } else {
         info!("Creating new provider..");
         let provider_id = create_new_provider(&config.m3u, api_config, db.clone(), client).await;
 
-        create_m3u(provider_id, config.proxy_domain, db.clone()).await;
+        create_m3u(provider_id, iptv_config, db.clone()).await;
     }
 }
 
 pub async fn try_provider_update(
     config: Configuration,
     api_config: ApiConfiguration,
+    iptv_config: IptvConfiguration,
     db: Arc<DB>,
     client: Arc<RestClient>,
 ) {
@@ -56,36 +58,40 @@ pub async fn try_provider_update(
         info!("Provider is out of date, refreshing..");
         let provider_id = create_new_provider(&config.m3u, api_config, db.clone(), client).await;
 
-        create_m3u(provider_id, config.proxy_domain, db.clone()).await;
+        create_m3u(provider_id, iptv_config, db.clone()).await;
     } else {
         info!("Provider is up to date. Skipping update...");
 
-        match m3u_file_exist().await.unwrap_or_default().status() {
+        match m3u_file_exist(Output::Custom)
+            .await
+            .unwrap_or_default()
+            .status()
+        {
             StatusCode::OK => {
                 info!("m3u file exists..");
 
                 if config.env == Environment::Development {
                     debug!("Creating file anyways since developing..");
 
-                    create_m3u(provider.id, config.proxy_domain, db.clone()).await;
+                    create_m3u(provider.id, iptv_config.clone(), db.clone()).await;
                 }
             }
             _ => {
                 info!("Creating new m3u file..");
-                create_m3u(provider.id, config.proxy_domain, db.clone()).await;
+                create_m3u(provider.id, iptv_config.clone(), db.clone()).await;
             }
         };
     }
 }
 
-async fn create_m3u(provider_id: u64, proxy_domain: String, db: Arc<DB>) {
+async fn create_m3u(provider_id: u64, iptv_config: IptvConfiguration, db: Arc<DB>) {
     if provider_id > 0 {
         let mut provider = ProviderDBService::new();
 
         provider.initialize_db(db);
 
         if let Ok(provider) = provider.get_provider(provider_id).await {
-            if let Err(err) = create_m3u_file(provider, proxy_domain).await {
+            if let Err(err) = create_m3u_file(provider, iptv_config).await {
                 error!(".m3u file created failed with {}", err)
             }
         }

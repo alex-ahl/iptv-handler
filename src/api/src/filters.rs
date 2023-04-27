@@ -10,7 +10,7 @@ use warp::{any, body, Filter};
 use crate::{
     handlers::{proxy::ProxyHandler, xtream::XtreamHandler},
     models::{
-        xtream::{Credentials, XtreamConfig},
+        xtream::{Credentials, Output, XtreamConfig},
         ApiConfiguration,
     },
 };
@@ -72,4 +72,8 @@ pub fn with_proxy_handler(
     proxy_handler: ProxyHandler,
 ) -> impl Filter<Extract = (ProxyHandler,), Error = Infallible> + Clone {
     any().map(move || proxy_handler.clone())
+}
+
+pub fn with_output() -> impl Filter<Extract = (Output,), Error = Infallible> + Clone {
+    any().map(move || Output::Custom)
 }
